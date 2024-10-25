@@ -1,1 +1,2 @@
-# jsmear
+# jSmear Deformer
+ 
