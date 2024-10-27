@@ -3,7 +3,7 @@
 
 MTypeId jSmear::id(0x0011580B);
 
-const char* jSmear :: kName = "jSmear";
+const char* jSmear::kName = "jSmear";
 
 MStatus jSmear::initialize() {
     return MS::kSuccess;
@@ -12,6 +12,7 @@ MStatus jSmear::initialize() {
 
 jSmear::jSmear() {
 }
+
 
 jSmear::~jSmear() {
 }

@@ -4,7 +4,7 @@
 #include <maya/MPxDeformerNode.h>
 
 
- class jSmear : public MPxDeformerNode {
+class jSmear : public MPxDeformerNode {
     public:
         jSmear();
         virtual 
@@ -17,5 +17,5 @@
 
         const static char* kName;
     
- };
- #endif
+};
+#endif
