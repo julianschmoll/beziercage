@@ -8,8 +8,7 @@ MStatus initializePlugin(MObject obj) {
   MStatus status;
   MFnPlugin plugin(obj, "Julian Schmoll", "1.0", "Any");
 
-  status = plugin.registerNode(jSmear::kName, jSmear::id, jSmear::creator, jSmear::initialize,
-                               MPxNode::kDeformerNode);
+  status = plugin.registerNode(jSmear::kName, jSmear::id, jSmear::creator, jSmear::initialize, MPxNode::kDeformerNode);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   status = plugin.registerCommand(jSmearCmd::kName, jSmearCmd::creator, jSmearCmd::newSyntax);
