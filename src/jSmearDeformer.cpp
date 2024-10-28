@@ -1,7 +1,8 @@
 #include "jSmearDeformer.h"
 #include <maya/MItGeometry.h>
 
-MTypeId jSmear::id(0x0011580B);
+// This ID is registered with Autodesk and should not clash with other nodes.
+MTypeId jSmear::id(0x13f8c0);
 
 const char* jSmear::kName = "jSmear";
 
