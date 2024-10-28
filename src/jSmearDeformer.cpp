@@ -1,10 +1,8 @@
 #include "jSmearDeformer.h"
 #include <maya/MItGeometry.h>
 
-/* According to https://mayaid.autodesk.io/ the numeric range 0 - 0x7ffff
-(524288 ids) is reserved for plugins that will be internal. Since
-registration is mostly for companies, this is a random number in this range. */
-MTypeId jSmear::id(0x6ccc);
+// This ID is registered with Autodesk and should not clash with other nodes.
+MTypeId jSmear::id(0x13f8c0);
 
 const char* jSmear::kName = "jSmear";
 
