@@ -17,5 +17,11 @@ class jSmear : public MPxDeformerNode {
 
         const static char* kName;
     
+        static MObject aDriverGeo; //driven geometry for deformer
+        static MObject aBindData;
+        static MObject aSampleComponents; //Vertex IDs
+        static MObject aSampleWeights; // Vertex weights
+        static MObject aBindMatrix;
+
 };
 #endif

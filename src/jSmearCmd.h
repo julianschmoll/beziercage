@@ -15,6 +15,6 @@
 
         const static char* kName;
         static MTypeId id;
-    
+
  };
  #endif
