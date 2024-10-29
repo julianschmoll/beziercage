@@ -7,7 +7,7 @@
 class jSmear : public MPxDeformerNode {
     public:
         jSmear();
-        virtual 
+        virtual
         virtual MStatus doIt(const MArgList&);
         virtual MStatus undoIt();
         virtual MStatus redoIt();
@@ -16,7 +16,7 @@ class jSmear : public MPxDeformerNode {
         static MSyntax newSyntax();
 
         const static char* kName;
-    
+
         static MObject aDriverGeo; //driven geometry for deformer
         static MObject aBindData;
         static MObject aSampleComponents; //Vertex IDs

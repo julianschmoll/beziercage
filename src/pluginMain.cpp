@@ -4,7 +4,7 @@
 #include <maya/MFnPlugin.h>
 #include <maya/MGlobal.h>
 
-MStatus initializePlugin(MObject obj) { 
+MStatus initializePlugin(MObject obj) {
   MStatus status;
   MFnPlugin plugin(obj, "Julian Schmoll", "1.0", "Any");
 

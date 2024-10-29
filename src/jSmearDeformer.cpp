@@ -1,7 +1,6 @@
 #include "jSmearDeformer.h"
 #include <maya/MItGeometry.h>
 #include <maya/MFnCompoundAttribute.h>
-#include <maya/MFn
 
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId jSmear::id(0x13f8c0);
