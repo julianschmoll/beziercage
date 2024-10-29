@@ -5,7 +5,7 @@
 #include <maya/MPxCommand.h>
 
 
- class jSmearCmd : public MPxCommand {
+class jSmearCmd : public MPxCommand {
     public:
         jSmearCmd();
         virtual ~jSmear();
@@ -16,5 +16,5 @@
         const static char* kName;
         static MTypeId id;
 
- };
- #endif
+};
+#endif
