@@ -73,10 +73,13 @@ MStatus jSmear::initialize() {
 
 
 jSmear::jSmear() {
+	m_initialized = false;
+	MThreadPool::init();
 }
 
 
 jSmear::~jSmear() {
+	MThreadPool::release();
 }
 
 
@@ -84,7 +87,29 @@ void* jSmear::creator() {
     return new jSmear();
 }
 
+
 MStatus jSmear::deform(MDataBlock& data, MItGeometry& itGeo, const MMatrix& localToWorldMatrix, unsigned int geomIndex) {
     MStatus status;
-    return status;
+    return MS::kSuccess;
+}
+
+
+bool jSmear::isUndoable() const {
+    return false;
+}
+
+MStatus jSmear::doIt(const MArgList& args) {
+    MStatus status;
+    return redoIt();
+}
+
+MStatus jSmear::redoIt(){
+    MStatus status;
+    return MS::kSuccess;
+}
+
+
+MStatus jSmear::undoIt(){
+    MStatus status;
+    return MS::kSuccess;
 }
