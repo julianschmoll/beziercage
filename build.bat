@@ -1,26 +1,31 @@
 @echo off
 
-set builddir=build%1
+set "root_folder=%cd%"
+
+set builddir="%root_folder%/build/%1"
 del %builddir% /S /Q
-mkdir %builddir%
+mkdir -p %builddir%
+
 cd %builddir%
-cmake -A x64 -T v143 -DMAYA_VERSION=%1 ../
+
+echo Building jSmear for Maya%1
+
+cmake -A x64 -T v143 -DMAYA_VERSION=%1 %root_folder%
 cmake --build . --target install --config Release
+cmake --build . --target clean
 
-set "target_folder=%cd%"
+echo Cleaning up build files
 
-for %%F in ("%target_folder%\*") do (
+for %%F in ("%builddir%\*") do (
     if /I not "%%~nxF"=="jSmear" (
-        echo Deleting file %%F
-        del /q "%%F"
+        del /q /f "%%F"
     )
 )
 
-for /d %%D in ("%target_folder%\*") do (
+for /d %%D in ("%builddir%\*") do (
     if /I not "%%~nxD"=="jSmear" (
-        echo Deleting directory %%D
-        rmdir /s /q "%%D"
+        rd /s /q "%%D"
     )
 )
 
-cd ..
+cd %root_folder%
