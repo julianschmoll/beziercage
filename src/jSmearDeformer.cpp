@@ -3,6 +3,7 @@
 
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId jSmear::id(0x13f8c0);
+
 MObject jSmear::aTime;
 MObject jSmear::aNormalOffset;
 MObject jSmear::aAngleMagnitude;
@@ -13,7 +14,6 @@ MObject jSmear::aMaxSmearVelocity;
 MObject jSmear::aWorldMatrix;
 
 const char* jSmear::kName = "jSmear";
-// declare static attributes (MObject jSmear::aDriverGeo; ...)
 
 
 MStatus jSmear::initialize() {
@@ -30,10 +30,6 @@ MStatus jSmear::initialize() {
     addAttribute(aWorldMatrix);
     attributeAffects(aWorldMatrix, outputGeom);
 
-    aStartFrame = nAttr.create("startFrame", "startFrame", MFnNumericData::kInt, 0, &status);
-    nAttr.setKeyable(true);
-    addAttribute(aStartFrame);
-
     aSmearFrames = nAttr.create("smearFrames", "smearFrames", MFnNumericData::kInt, 1, &status);
     nAttr.setMin(1);
     nAttr.setMax(100);
@@ -41,29 +37,19 @@ MStatus jSmear::initialize() {
     addAttribute(aSmearFrames);
     attributeAffects(aSmearFrames, outputGeom);
 
-    aNormalOffset = nAttr.create("normalOffset", "normalOffset", MFnNumericData::kFloat, 0.0, &status);
-    nAttr.setMin(0.0);
-    nAttr.setKeyable(true);
-    addAttribute(aNormalOffset);
-    attributeAffects(aNormalOffset, outputGeom);
-
-    aAngleMagnitude = nAttr.create("angleMagnitude", "angleMagnitude", MFnNumericData::kFloat, 1.0, &status);
-    nAttr.setMin(0.0);
-    nAttr.setKeyable(true);
-    addAttribute(aAngleMagnitude);
-    attributeAffects(aAngleMagnitude, outputGeom);
-
-    aMinSmearVelocity = nAttr.create("minSmearVelocity", "minSmearVelocity", MFnNumericData::kDouble, 0, &status);
+    aMinSmearVelocity = nAttr.create("minVelocity", "minVelocity", MFnNumericData::kDouble, 0, &status);
     nAttr.setMin(0.0);
     nAttr.setKeyable(true);
     addAttribute(aMinSmearVelocity);
     attributeAffects(aMinSmearVelocity, outputGeom);
 
-    aMaxSmearVelocity = nAttr.create("maxSmearVelocity", "maxSmearVelocity", MFnNumericData::kDouble, 5, &status);
+    aMaxSmearVelocity = nAttr.create("maxVelocity", "maxVelocity", MFnNumericData::kDouble, 5, &status);
     nAttr.setMin(0.0);
     nAttr.setKeyable(true);
     addAttribute(aMaxSmearVelocity);
     attributeAffects(aMaxSmearVelocity, outputGeom);
+
+    // make shape editable here somehow
 
     // Makes the deformer weight paintable
     MGlobal::executeCommand("makePaintable -attrType multiFloat -sm deformer jSmear weights");
@@ -90,6 +76,19 @@ void* jSmear::creator() {
 
 MStatus jSmear::deform(MDataBlock& data, MItGeometry& itGeo, const MMatrix& localToWorldMatrix, unsigned int geomIndex) {
     MStatus status;
+
+    // get velocity vector of each vert first
+    // get normalized velocity vector as well (by dividing each component by the original length)
+
+    // get normal vector of each vert
+
+    // calculate dot product between normalized vel vector and normal vector
+    // if this dot product is less or equal to zero we can leave vert where it is
+
+    // if not, we want to move it it in the opposite direction of velocity vector
+    // to make sure verts are moved further, if they are closer in the direction of vel vector,
+    // we want to multiply by dot product
+
     return MS::kSuccess;
 }
 
