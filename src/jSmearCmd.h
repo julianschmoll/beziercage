@@ -38,7 +38,17 @@ class jSmearCmd : public MPxCommand {
         virtual bool isUndoable() const;
 
         const static char* kName;
+        const static char* kNameFlagShort;
+        const static char* kNameFlagLong;
+
         static MTypeId id;
         static MSyntax newSyntax();
+
+    private:
+        MStatus GatherCommandArguments(const MArgList& args);
+        MString name_;
+        MDagPathArray drivenGeometry_;
+        MDGModifier dgMod_;
+        MObject jSmearNode_;
 };
 #endif
