@@ -11,8 +11,8 @@ const char* jSmearCmd::kHelpFlagLong = "-help";
 
 void DisplayHelp() {
     MString help;
-    help += "Flags:\n"; 
-    help += "-name (-n):          String     Name of the jsmear node to create.\n"; 
+    help += "Flags:\n";
+    help += "-name (-n):          String     Name of the jsmear node to create.\n";
     help += "-help (-h)           N/A        Display this text.\n";
     MGlobal::displayInfo(help);
 }
@@ -25,7 +25,9 @@ MSyntax jSmearCmd::newSyntax() {
     MSyntax syntax;
 
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
-    syntax.setObjectType(MSyntax::kSelectionList, 0, 255);
+
+    // Allows between 1 and 255 objects to be deformed
+    syntax.setObjectType(MSyntax::kSelectionList, 1, 255);
     syntax.useSelectionAsDefault(true);
 
     return syntax;
@@ -38,20 +40,29 @@ void* jSmearCmd::creator() {
 
 
 bool jSmearCmd::isUndoable() const {
-    return false;
+    return true;
 }
 
 
 MStatus jSmearCmd::doIt(const MArgList& args) {
     MStatus status;
 
-    // Get geo
     status = GatherCommandArguments(args);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    // get geometry paths
+    status = GetGeometryPaths();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    // create deformer
+    MString command = "deformer -type jSmear -n \"" + name_ + "\"";
+
+    // Add all of the meshes to be driven
+    for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
+        MFnDagNode fnDriven(pathDriven_[i]);
+        command += " " + fnDriven.partialPathName();
+    }
+
+    status = dgMod_.commandToExecute(command);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     return redoIt();
 }
@@ -68,6 +79,8 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
         name_ = argData.flagArgumentString(kNameFlagShort, 0, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
+
+    return MS::kSuccess;
 }
 
 MStatus jSmearCmd::redoIt(){
@@ -78,5 +91,7 @@ MStatus jSmearCmd::redoIt(){
 
 MStatus jSmearCmd::undoIt(){
     MStatus status;
+    status = dgMod_.undoIt();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
     return MS::kSuccess;
 }

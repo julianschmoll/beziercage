@@ -27,6 +27,8 @@
 
 #include <maya/MPxCommand.h>
 
+#include "common.h"
+
 class jSmearCmd : public MPxCommand {
     public:
         jSmearCmd();
@@ -48,9 +50,11 @@ class jSmearCmd : public MPxCommand {
 
     private:
         MStatus GatherCommandArguments(const MArgList& args);
+        MStatus GetGeometryPaths();
         MString name_;
         MDagPathArray drivenGeometry_;
         MDGModifier dgMod_;
         MObject jSmearNode_;
+        MDagPathArray pathDriven_;
 };
 #endif
