@@ -1,4 +1,6 @@
 set(SOURCE_FILES
+    "common.cpp"
+    "common.h"
     "pluginMain.cpp"
     "jSmearCmd.cpp"
     "jSmearCmd.h"
