@@ -1,11 +1,21 @@
 #include "jSmearCmd.h"
 
-#include <maya/MArgDatabase.h>
-#include <maya/MSyntax.h>
-
 const char* jSmearCmd::kName = "jSmear";
+
 const char* jSmearCmd::kNameFlagShort = "-n";
 const char* jSmearCmd::kNameFlagLong = "-name";
+
+const char* jSmearCmd::kHelpFlagShort = "-h";
+const char* jSmearCmd::kHelpFlagLong = "-help";
+
+
+void DisplayHelp() {
+    MString help;
+    help += "Flags:\n"; 
+    help += "-name (-n):          String     Name of the jsmear node to create.\n"; 
+    help += "-help (-h)           N/A        Display this text.\n";
+    MGlobal::displayInfo(help);
+}
 
 jSmearCmd::jSmearCmd() : name_("jSmear#") {
 }

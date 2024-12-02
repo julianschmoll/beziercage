@@ -40,6 +40,8 @@ class jSmearCmd : public MPxCommand {
         const static char* kName;
         const static char* kNameFlagShort;
         const static char* kNameFlagLong;
+        const static char* kHelpFlagShort;
+        const static char* kHelpFlagLong;
 
         static MTypeId id;
         static MSyntax newSyntax();
