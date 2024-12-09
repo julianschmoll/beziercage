@@ -61,14 +61,30 @@ MStatus jSmearCmd::doIt(const MArgList& args) {
         command += " " + fnDriven.partialPathName();
     }
 
+    cout << command << endl;
+
     status = dgMod_.commandToExecute(command);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     return redoIt();
 }
 
-// implement function to get geo paths (selectionlist dag paths and then shape nodes from that)
-// method to get shape node as well
+MStatus jSmearCmd::GetGeometryPaths() {
+    MStatus status;
+    MItSelectionList iter(selectionList_);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    pathDriven_.clear();
+
+    for (unsigned int i = 0; i < selectionList_.length(); ++i, iter.next()) {
+        MDagPath path;
+        MObject component;
+        iter.getDagPath(path, component);
+        status = GetShapeNode(path);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        pathDriven_.append(path);
+  }
+  return MS::kSuccess;
+}
 
 MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
     MStatus status;

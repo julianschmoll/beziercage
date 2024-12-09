@@ -17,7 +17,7 @@
 
 #include <maya/MItGeometry.h>
 #include <maya/MItDependencyGraph.h>
-
+#include <maya/MItSelectionList.h>
 #include <maya/MFnDagNode.h>
 #include <maya/MFnDependencyNode.h>
 #include <maya/MFn.h>
@@ -52,6 +52,8 @@ class jSmearCmd : public MPxCommand {
         MStatus GatherCommandArguments(const MArgList& args);
         MStatus GetGeometryPaths();
         MString name_;
+        MSelectionList selectionList_;  /**< Selected command input nodes. */
+        
         MDagPathArray drivenGeometry_;
         MDGModifier dgMod_;
         MObject jSmearNode_;
