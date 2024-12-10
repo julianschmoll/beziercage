@@ -4,7 +4,7 @@ set "root_folder=%cd%"
 
 set builddir="%root_folder%/build/%1"
 del %builddir% /S /Q
-mkdir -p %builddir%
+mkdir %builddir%
 
 cd %builddir%
 
