@@ -14,6 +14,13 @@ MStatus initializePlugin(MObject obj) {
   status = plugin.registerCommand(jSmearCmd::kName, jSmearCmd::creator, jSmearCmd::newSyntax);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
+  MGlobal::displayInfo("Initialized jSmear");
+
+  if (MGlobal::mayaState() == MGlobal::kInteractive) {
+    MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
+    MGlobal::executePythonCommandOnIdle("try:import jsmear.menu;jsmear.menu.create()\nexcept:MGlobal.displayWarning('Could not add jSmear Menu')");
+  }
+
   return status;
 }
 
@@ -26,6 +33,11 @@ MStatus uninitializePlugin(MObject obj) {
 
   status = plugin.deregisterNode(jSmear::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
+
+  if (MGlobal::mayaState() == MGlobal::kInteractive) {
+    MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
+    MGlobal::executePythonCommandOnIdle("try:import jsmear.menu;jsmear.menu.destroy()\nexcept:MGlobal.displayWarning('Could not remove jSmear Menu')");
+  }
 
   return status;
 }
