@@ -47,6 +47,8 @@ bool jSmearCmd::isUndoable() const {
 MStatus jSmearCmd::doIt(const MArgList& args) {
     MStatus status;
 
+    MGlobal::displayInfo("entering jSmearCmd::doIt");
+
     status = GatherCommandArguments(args);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -61,7 +63,7 @@ MStatus jSmearCmd::doIt(const MArgList& args) {
         command += " " + fnDriven.partialPathName();
     }
 
-    cout << command << endl;
+    MGlobal::displayInfo("Running: " + command);
 
     status = dgMod_.commandToExecute(command);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -71,14 +73,22 @@ MStatus jSmearCmd::doIt(const MArgList& args) {
 
 MStatus jSmearCmd::GetGeometryPaths() {
     MStatus status;
+
+    MGlobal::displayInfo("entering jSmearCmd::GetGeometryPaths");
+
     MItSelectionList iter(selectionList_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     pathDriven_.clear();
+
+    MGlobal::displayInfo("Items Selected: " + selectionList_.length());
 
     for (unsigned int i = 0; i < selectionList_.length(); ++i, iter.next()) {
         MDagPath path;
         MObject component;
         iter.getDagPath(path, component);
+
+        MGlobal::displayInfo("Getting Shape Node of :" + path.fullPathName());
+
         status = GetShapeNode(path);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         pathDriven_.append(path);
@@ -89,9 +99,15 @@ MStatus jSmearCmd::GetGeometryPaths() {
 MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
     MStatus status;
 
-    MArgDatabase argData(syntax(), args);
+    MGlobal::displayInfo("entering jSmearCmd::GatherCommandArguments");
 
-    if (argData.isFlagSet(kNameFlagShort)){
+    MArgDatabase argData(syntax(), args);
+    argData.getObjects(selectionList_);
+
+    if (argData.isFlagSet(kHelpFlagShort)) {
+        DisplayHelp();
+        return MS::kSuccess;
+    } else if (argData.isFlagSet(kNameFlagShort)){
         name_ = argData.flagArgumentString(kNameFlagShort, 0, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
@@ -101,6 +117,9 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
 
 MStatus jSmearCmd::redoIt(){
     MStatus status;
+
+    status = dgMod_.doIt();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
     return MS::kSuccess;
 }
 
