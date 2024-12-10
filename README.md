@@ -5,6 +5,12 @@ Maya Smear deformer.
 ## Getting Started
 
 
+```python
+from maya import cmds
+
+cmds.jSmear()
+```
+
 ## Building
 
 ### Building on Windows
