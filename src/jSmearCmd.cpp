@@ -8,11 +8,13 @@ const char* jSmearCmd::kNameFlagLong = "-name";
 const char* jSmearCmd::kHelpFlagShort = "-h";
 const char* jSmearCmd::kHelpFlagLong = "-help";
 
+bool helpFlagSet = false;
+
 
 void DisplayHelp() {
     MString help;
-    help += "Flags:\n";
-    help += "-name (-n):          String     Name of the jsmear node to create.\n";
+    help += "Flags of jSmear Command:\n";
+    help += "-name (-n):          String     Name of the jSmear node to create.\n";
     help += "-help (-h)           N/A        Display this text.\n";
     MGlobal::displayInfo(help);
 }
@@ -25,9 +27,10 @@ MSyntax jSmearCmd::newSyntax() {
     MSyntax syntax;
 
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
+    syntax.addFlag(kHelpFlagShort, kHelpFlagLong, MSyntax::kBoolean);
 
-    // Allows between 1 and 255 objects to be deformed
-    syntax.setObjectType(MSyntax::kSelectionList, 1, 255);
+    // Allows between 1 and 255 objects to be deformed, 0 for help flag
+    syntax.setObjectType(MSyntax::kSelectionList, 0, 255);
     syntax.useSelectionAsDefault(true);
 
     return syntax;
@@ -43,11 +46,8 @@ bool jSmearCmd::isUndoable() const {
     return true;
 }
 
-
 MStatus jSmearCmd::doIt(const MArgList& args) {
     MStatus status;
-
-    MGlobal::displayInfo("entering jSmearCmd::doIt");
 
     status = GatherCommandArguments(args);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -55,15 +55,17 @@ MStatus jSmearCmd::doIt(const MArgList& args) {
     status = GetGeometryPaths();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
+    if (pathDriven_.length() == 0 && !helpFlagSet) {
+        MGlobal::displayError("jSmear requires at least 1 shape(s) to be specified or selected;  found 0.");
+        return MS::kFailure;
+    }
+
     MString command = "deformer -type jSmear -n \"" + name_ + "\"";
 
-    // Add all of the meshes to be driven
     for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
         MFnDagNode fnDriven(pathDriven_[i]);
         command += " " + fnDriven.partialPathName();
     }
-
-    MGlobal::displayInfo("Running: " + command);
 
     status = dgMod_.commandToExecute(command);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -74,21 +76,14 @@ MStatus jSmearCmd::doIt(const MArgList& args) {
 MStatus jSmearCmd::GetGeometryPaths() {
     MStatus status;
 
-    MGlobal::displayInfo("entering jSmearCmd::GetGeometryPaths");
-
     MItSelectionList iter(selectionList_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     pathDriven_.clear();
-
-    MGlobal::displayInfo("Items Selected: " + selectionList_.length());
 
     for (unsigned int i = 0; i < selectionList_.length(); ++i, iter.next()) {
         MDagPath path;
         MObject component;
         iter.getDagPath(path, component);
-
-        MGlobal::displayInfo("Getting Shape Node of :" + path.fullPathName());
-
         status = GetShapeNode(path);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         pathDriven_.append(path);
@@ -99,15 +94,16 @@ MStatus jSmearCmd::GetGeometryPaths() {
 MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
     MStatus status;
 
-    MGlobal::displayInfo("entering jSmearCmd::GatherCommandArguments");
-
     MArgDatabase argData(syntax(), args);
     argData.getObjects(selectionList_);
 
     if (argData.isFlagSet(kHelpFlagShort)) {
-        DisplayHelp();
+        helpFlagSet = argData.flagArgumentBool(kHelpFlagShort, 0, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         return MS::kSuccess;
-    } else if (argData.isFlagSet(kNameFlagShort)){
+    }
+
+    if (argData.isFlagSet(kNameFlagShort)){
         name_ = argData.flagArgumentString(kNameFlagShort, 0, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
@@ -118,8 +114,27 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
 MStatus jSmearCmd::redoIt(){
     MStatus status;
 
+    if (helpFlagSet) {
+        DisplayHelp();
+        return MS::kSuccess;
+    }
+
     status = dgMod_.doIt();
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    /*
+     *
+     * redoIt it needs to do the following:
+     *
+     * 1. Find all the relevant nodes and plugs
+     *    (deformer node, deformed mesh, matrix, time, etc plugs)
+     * 2. Create MDGModifier dgMod and connect those plugs with:
+     *    dgMod.connect(plugOutWorldMatrix, plugInMatrix);
+     *    status = dgMod.doIt();
+     *  3. Run setResult(fnDeformerNode.name()) to return deformer node
+     *
+     */
+
     return MS::kSuccess;
 }
 

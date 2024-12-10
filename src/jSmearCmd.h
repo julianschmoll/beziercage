@@ -53,7 +53,6 @@ class jSmearCmd : public MPxCommand {
         MStatus GetGeometryPaths();
         MString name_;
         MSelectionList selectionList_;  /**< Selected command input nodes. */
-        
         MDagPathArray drivenGeometry_;
         MDGModifier dgMod_;
         MObject jSmearNode_;
