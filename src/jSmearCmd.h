@@ -30,32 +30,41 @@
 #include "common.h"
 
 class jSmearCmd : public MPxCommand {
-    public:
-        jSmearCmd();
-        static void* creator();
-        static MStatus initialize();
-        virtual MStatus	doIt(const MArgList&);
-        virtual MStatus undoIt();
-        virtual MStatus redoIt();
-        virtual bool isUndoable() const;
+public:
+    jSmearCmd();
 
-        const static char* kName;
-        const static char* kNameFlagShort;
-        const static char* kNameFlagLong;
-        const static char* kHelpFlagShort;
-        const static char* kHelpFlagLong;
+    static void *creator();
 
-        static MTypeId id;
-        static MSyntax newSyntax();
+    static MStatus initialize();
 
-    private:
-        MStatus GatherCommandArguments(const MArgList& args);
-        MStatus GetGeometryPaths();
-        MString name_;
-        MSelectionList selectionList_;  /**< Selected command input nodes. */
-        MDagPathArray drivenGeometry_;
-        MDGModifier dgMod_;
-        MObject jSmearNode_;
-        MDagPathArray pathDriven_;
+    virtual MStatus doIt(const MArgList &);
+
+    virtual MStatus undoIt();
+
+    virtual MStatus redoIt();
+
+    virtual bool isUndoable() const;
+
+    const static char *kName;
+    const static char *kNameFlagShort;
+    const static char *kNameFlagLong;
+    const static char *kHelpFlagShort;
+    const static char *kHelpFlagLong;
+
+    static MTypeId id;
+
+    static MSyntax newSyntax();
+
+private:
+    MStatus GatherCommandArguments(const MArgList &args);
+
+    MStatus GetGeometryPaths();
+
+    MString name_;
+    MSelectionList selectionList_; /**< Selected command input nodes. */
+    MDagPathArray drivenGeometry_;
+    MDGModifier dgMod_;
+    MObject jSmearNode_;
+    MDagPathArray pathDriven_;
 };
 #endif

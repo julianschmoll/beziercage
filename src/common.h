@@ -23,7 +23,7 @@
   @param[in] path the dag path.
   @return true if provided path is for a shape node.
  */
-bool IsShapeNode(MDagPath& path);
+bool IsShapeNode(MDagPath &path);
 
 
 /**
@@ -32,7 +32,7 @@ bool IsShapeNode(MDagPath& path);
   @param[in] intermediate setting to get intermediate nodes.
   @return MStatus.
  */
-MStatus GetShapeNode(MDagPath& path, bool intermediate=false);
+MStatus GetShapeNode(MDagPath &path, bool intermediate = false);
 
 
 /**
@@ -40,13 +40,13 @@ MStatus GetShapeNode(MDagPath& path, bool intermediate=false);
   @param[in] name Name of a dag node.
   @param[out] path Storage for the dag path.
  */
-MStatus GetDagPath(MString& name, MDagPath& path);
+MStatus GetDagPath(MString &name, MDagPath &path);
 
 
 /**
   Delete intermediate shape nodes of the given dag path.
   @param[in] path DagPath.
  */
-MStatus DeleteIntermediateObjects(MDagPath& path);
+MStatus DeleteIntermediateObjects(MDagPath &path);
 
 #endif

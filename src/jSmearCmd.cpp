@@ -1,12 +1,12 @@
 #include "jSmearCmd.h"
 
-const char* jSmearCmd::kName = "jSmear";
+const char *jSmearCmd::kName = "jSmear";
 
-const char* jSmearCmd::kNameFlagShort = "-n";
-const char* jSmearCmd::kNameFlagLong = "-name";
+const char *jSmearCmd::kNameFlagShort = "-n";
+const char *jSmearCmd::kNameFlagLong = "-name";
 
-const char* jSmearCmd::kHelpFlagShort = "-h";
-const char* jSmearCmd::kHelpFlagLong = "-help";
+const char *jSmearCmd::kHelpFlagShort = "-h";
+const char *jSmearCmd::kHelpFlagLong = "-help";
 
 bool helpFlagSet = false;
 
@@ -37,7 +37,7 @@ MSyntax jSmearCmd::newSyntax() {
 }
 
 
-void* jSmearCmd::creator() {
+void *jSmearCmd::creator() {
     return new jSmearCmd;
 }
 
@@ -46,7 +46,7 @@ bool jSmearCmd::isUndoable() const {
     return true;
 }
 
-MStatus jSmearCmd::doIt(const MArgList& args) {
+MStatus jSmearCmd::doIt(const MArgList &args) {
     MStatus status;
 
     status = GatherCommandArguments(args);
@@ -87,11 +87,11 @@ MStatus jSmearCmd::GetGeometryPaths() {
         status = GetShapeNode(path);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         pathDriven_.append(path);
-  }
-  return MS::kSuccess;
+    }
+    return MS::kSuccess;
 }
 
-MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
+MStatus jSmearCmd::GatherCommandArguments(const MArgList &args) {
     MStatus status;
 
     MArgDatabase argData(syntax(), args);
@@ -103,7 +103,7 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
         return MS::kSuccess;
     }
 
-    if (argData.isFlagSet(kNameFlagShort)){
+    if (argData.isFlagSet(kNameFlagShort)) {
         name_ = argData.flagArgumentString(kNameFlagShort, 0, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
@@ -111,7 +111,7 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList& args){
     return MS::kSuccess;
 }
 
-MStatus jSmearCmd::redoIt(){
+MStatus jSmearCmd::redoIt() {
     MStatus status;
 
     if (helpFlagSet) {
@@ -139,7 +139,7 @@ MStatus jSmearCmd::redoIt(){
 }
 
 
-MStatus jSmearCmd::undoIt(){
+MStatus jSmearCmd::undoIt() {
     MStatus status;
     status = dgMod_.undoIt();
     CHECK_MSTATUS_AND_RETURN_IT(status);

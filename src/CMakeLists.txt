@@ -1,11 +1,11 @@
 set(SOURCE_FILES
-    "common.cpp"
-    "common.h"
-    "pluginMain.cpp"
-    "jSmearCmd.cpp"
-    "jSmearCmd.h"
-    "jSmearDeformer.cpp"
-    "jSmearDeformer.h"
+        "common.cpp"
+        "common.h"
+        "pluginMain.cpp"
+        "jSmearCmd.cpp"
+        "jSmearCmd.h"
+        "jSmearDeformer.cpp"
+        "jSmearDeformer.h"
 )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MAYA_CXX_FLAGS}")
 find_package(Maya REQUIRED)

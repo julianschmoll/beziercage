@@ -42,37 +42,46 @@
 #include <array>
 
 
-
 class jSmear : public MPxDeformerNode {
-    public:
-        jSmear();
-        virtual	~jSmear();
-        virtual MStatus doIt(const MArgList&);
-        virtual MStatus undoIt();
-        virtual MStatus redoIt();
-        virtual bool isUndoable() const;
-        static void* creator();
-        static  MStatus initialize();
-        static MSyntax newSyntax();
-        virtual MStatus deform(MDataBlock& block, MItGeometry& iter, const MMatrix& mat, unsigned int multiIndex);
-        const static char* kName;
+public:
+    jSmear();
 
-        static MObject aDriverGeo; //driven geometry for deformer
-        static MObject aBindData;
-        static MObject aSampleComponents; //Vertex IDs
-        static MObject aSampleWeights; // Vertex weights
-        static MObject aBindMatrix;
-        static MTypeId id;
-        static MObject aTime;
-        static MObject aStartFrame;
-        static MObject aMinSmearVelocity;
-        static MObject aMaxSmearVelocity;
-        static MObject aWorldMatrix;
-        static MObject aSmearFrames;
-        static MObject aNormalOffset;
-        static MObject aAngleMagnitude;
+    virtual ~jSmear();
 
-    private:
-        bool m_initialized;
+    virtual MStatus doIt(const MArgList &);
+
+    virtual MStatus undoIt();
+
+    virtual MStatus redoIt();
+
+    virtual bool isUndoable() const;
+
+    static void *creator();
+
+    static MStatus initialize();
+
+    static MSyntax newSyntax();
+
+    virtual MStatus deform(MDataBlock &block, MItGeometry &iter, const MMatrix &mat, unsigned int multiIndex);
+
+    const static char *kName;
+
+    static MObject aDriverGeo; //driven geometry for deformer
+    static MObject aBindData;
+    static MObject aSampleComponents; //Vertex IDs
+    static MObject aSampleWeights; // Vertex weights
+    static MObject aBindMatrix;
+    static MTypeId id;
+    static MObject aTime;
+    static MObject aStartFrame;
+    static MObject aMinSmearVelocity;
+    static MObject aMaxSmearVelocity;
+    static MObject aWorldMatrix;
+    static MObject aSmearFrames;
+    static MObject aNormalOffset;
+    static MObject aAngleMagnitude;
+
+private:
+    bool m_initialized;
 };
 #endif
