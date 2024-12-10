@@ -2,7 +2,7 @@
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
-MTypeId jSmear::id(0x13f8c0);
+MTypeId jSmear::id(0x0013f8c0);
 
 MObject jSmear::aTime;
 MObject jSmear::aNormalOffset;
