@@ -1,21 +1,16 @@
 """Runner, running all unittests for jSmear."""
-import sys
-import maya.standalone
-import unittest
-from pathlib import Path
 import os
+from pathlib import Path
+import sys
+import unittest
+
+import maya.standalone
+
 
 def run_batch_tests():
-    path = sys.argv[1]
-    version = sys.argv[2]
-    print(f"Appending {path}")
-    sys.path.append(path)
-    maya.standalone.initialize(name="python")
-    root_path = Path(__file__).parent.parent
+    """Runs all configured tests."""
+    _setup_environment()
     test_path = Path(__file__).parent
-    plug_in_path = Path(root_path / "build" / version / "plug-ins" )
-    print(plug_in_path)
-    os.environ["MAYA_PLUG_IN_PATH"] = plug_in_path
     suite = unittest.TestLoader().discover(test_path)
     runner = unittest.TextTestRunner(
         stream=sys.stdout,
@@ -23,6 +18,17 @@ def run_batch_tests():
         verbosity=2
     )
     return runner.run(suite)
+
+
+def _setup_environment():
+    path = sys.argv[1]
+    version = sys.argv[2]
+    sys.path.append(path)
+    root_path = Path(__file__).parent.parent
+    plug_in_path = Path(root_path / "build" / version / "jSmear" / "plug-ins")
+    os.environ["MAYA_PLUG_IN_PATH"] = str(plug_in_path)
+    maya.standalone.initialize(name="python")
+
 
 if __name__ == "__main__":
     run_batch_tests()
