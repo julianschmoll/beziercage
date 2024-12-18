@@ -46,6 +46,7 @@ bool jSmearCmd::isUndoable() const {
     return true;
 }
 
+
 MStatus jSmearCmd::doIt(const MArgList &args) {
     MStatus status;
 
@@ -73,6 +74,7 @@ MStatus jSmearCmd::doIt(const MArgList &args) {
     return redoIt();
 }
 
+
 MStatus jSmearCmd::GetGeometryPaths() {
     MStatus status;
 
@@ -90,6 +92,7 @@ MStatus jSmearCmd::GetGeometryPaths() {
     }
     return MS::kSuccess;
 }
+
 
 MStatus jSmearCmd::GatherCommandArguments(const MArgList &args) {
     MStatus status;
@@ -111,6 +114,7 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList &args) {
     return MS::kSuccess;
 }
 
+
 MStatus jSmearCmd::redoIt() {
     MStatus status;
 
@@ -121,6 +125,21 @@ MStatus jSmearCmd::redoIt() {
 
     status = dgMod_.doIt();
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    // Reacquire the path because on referenced geo, a new mesh is created (the ShapeDeformed).
+    status = GetGeometryPaths();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    // Get the created mesh blur deformer node.
+    status = GetLatestDeformerNode();
+    MFnDependencyNode fnDeformerNode(oDeformerNode_, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    MDGModifier dgMod;
+    // dgMod.connect(plugOutWorldMatrix, plugInMatrix); etc
+    // status = dgMod.doIt();
+    // CHECK_MSTATUS_AND_RETURN_IT(status);
+    // setResult(fnDeformerNode.name());
 
     /*
      *
@@ -136,6 +155,34 @@ MStatus jSmearCmd::redoIt() {
      */
 
     return MS::kSuccess;
+}
+
+
+MStatus jSmearCmd::GetLatestDeformerNode() {
+    MStatus status;
+    MObject oMesh = pathDriven_[0].node();
+
+    // find it in the deformation chain.
+    MItDependencyGraph itDG(
+        oMesh,
+        MFn::kGeometryFilt,
+        MItDependencyGraph::kUpstream,
+        MItDependencyGraph::kDepthFirst,
+        MItDependencyGraph::kNodeLevel,
+        &status
+    );
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MObject oDeformerNode;
+    for (; !itDG.isDone(); itDG.next()) {
+        oDeformerNode = itDG.currentItem();
+        MFnDependencyNode fnNode(oDeformerNode, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        if (fnNode.typeId() == jSmearCmd::id) {
+            oDeformerNode_ = oDeformerNode;
+            return MS::kSuccess;
+        }
+    }
+    return MS::kFailure;
 }
 
 

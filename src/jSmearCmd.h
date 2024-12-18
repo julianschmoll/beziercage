@@ -39,6 +39,8 @@ public:
 
     virtual MStatus doIt(const MArgList &);
 
+    MStatus GetLatestDeformerNode();
+
     virtual MStatus undoIt();
 
     virtual MStatus redoIt();
@@ -64,7 +66,7 @@ private:
     MSelectionList selectionList_; /**< Selected command input nodes. */
     MDagPathArray drivenGeometry_;
     MDGModifier dgMod_;
-    MObject jSmearNode_;
+    MObject oDeformerNode_;
     MDagPathArray pathDriven_;
 };
 #endif
