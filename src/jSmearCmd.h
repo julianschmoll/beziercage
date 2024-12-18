@@ -28,6 +28,7 @@
 #include <maya/MPxCommand.h>
 
 #include "common.h"
+#include "jSmearDeformer.h"
 
 class jSmearCmd : public MPxCommand {
 public:

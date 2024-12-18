@@ -177,7 +177,7 @@ MStatus jSmearCmd::GetLatestDeformerNode() {
         oDeformerNode = itDG.currentItem();
         MFnDependencyNode fnNode(oDeformerNode, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
-        if (fnNode.typeId() == jSmearCmd::id) {
+        if (fnNode.typeId() == jSmear::id) {
             oDeformerNode_ = oDeformerNode;
             return MS::kSuccess;
         }
