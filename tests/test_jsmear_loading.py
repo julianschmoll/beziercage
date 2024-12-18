@@ -6,13 +6,16 @@ from maya import cmds
 
 PLUGIN = "jSmear.mll"
 
-class TestJsmearInit(unittest.TestCase):
+class TestJSmearLoading(unittest.TestCase):
     """Test Initialization of jSmear."""
 
-    def test_init(self):
-        """Test Initialization of jSmear."""
+    def test_load(self):
+        """Initialize jSmear."""
         cmds.loadPlugin(PLUGIN)
         _check_plugin_state(loaded=True)
+
+    def test_unload(self):
+        """Uninitialize jSmear."""
         cmds.unloadPlugin(PLUGIN)
         _check_plugin_state(loaded=False)
 
