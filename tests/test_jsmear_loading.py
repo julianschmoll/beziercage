@@ -6,6 +6,7 @@ from maya import cmds
 
 PLUGIN = "jSmear.mll"
 
+
 class TestJSmearLoading(unittest.TestCase):
     """Test Initialization of jSmear."""
 
