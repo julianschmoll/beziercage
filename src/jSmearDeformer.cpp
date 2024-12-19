@@ -49,7 +49,7 @@ MStatus jSmear::initialize() {
     addAttribute(aMaxSmearVelocity);
     attributeAffects(aMaxSmearVelocity, outputGeom);
 
-    // make shape editable here somehow
+    // add attribute to make shape of smear editable
 
     // Makes the deformer weight paintable
     MGlobal::executeCommand("makePaintable -attrType multiFloat -sm deformer jSmear weights");
