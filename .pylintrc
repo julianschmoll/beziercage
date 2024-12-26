@@ -1,0 +1,6 @@
+[MESSAGES CONTROL]
+disable=
+    # Ignoring this as cmds commands used in tests do return with q flag set
+    assignment-from-no-return,
+    # Ignoring this as pylint gives false positives with cmds commands
+    unexpected-keyword-arg,
