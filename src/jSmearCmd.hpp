@@ -1,5 +1,5 @@
-#ifndef JSMEARCMD_H
-#define JSMEARCMD_H
+#ifndef JSMEARCMD_HPP
+#define JSMEARCMD_HPP
 
 #include <maya/MSelectionList.h>
 #include <maya/MDagPath.h>
@@ -27,8 +27,8 @@
 
 #include <maya/MPxCommand.h>
 
-#include "common.h"
-#include "jSmearDeformer.h"
+#include "common.hpp"
+#include "jSmearDeformer.hpp"
 
 class jSmearCmd : public MPxCommand {
 public:

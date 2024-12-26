@@ -1,5 +1,5 @@
-#ifndef JSMEARDEFORMER_H
-#define JSMEARDEFORMER_H
+#ifndef JSMEARDEFORMER_HPP
+#define JSMEARDEFORMER_HPP
 
 
 #include <maya/MPlug.h>

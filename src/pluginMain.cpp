@@ -1,5 +1,5 @@
-#include "jSmearCmd.h"
-#include "jSmearDeformer.h"
+#include "jSmearCmd.hpp"
+#include "jSmearDeformer.hpp"
 
 #include <maya/MFnPlugin.h>
 #include <maya/MGlobal.h>

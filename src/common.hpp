@@ -2,8 +2,8 @@
   Contains various helper functions.
 */
 
-#ifndef JSMEAR_COMMON_H
-#define JSMEAR_COMMON_H
+#ifndef JSMEAR_COMMON_HPP
+#define JSMEAR_COMMON_HPP
 
 #include <maya/MDagPath.h>
 #include <maya/MDoubleArray.h>

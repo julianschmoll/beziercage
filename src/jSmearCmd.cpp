@@ -1,4 +1,4 @@
-#include "jSmearCmd.h"
+#include "jSmearCmd.hpp"
 
 const char *jSmearCmd::kName = "jSmear";
 

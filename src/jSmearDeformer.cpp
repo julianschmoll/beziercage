@@ -1,4 +1,4 @@
-# include "jSmearDeformer.h"
+# include "jSmearDeformer.hpp"
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
