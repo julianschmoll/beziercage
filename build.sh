@@ -20,7 +20,7 @@ cmake --build . --target clean
 echo "Cleaning up build files"
 
 for item in "$builddir"/*; do
-  if [ "$(basename "$item")" != "jSmear" ]; then
+  if [ "$(basename "$item")" != "jSmear" ] && [ "$(basename "$item")" != "README.md" ]; then
     rm -rf "$item"
   fi
 done
