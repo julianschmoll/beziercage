@@ -16,7 +16,16 @@ cmds.jSmear()
 ### Building on Windows
 
 1. Clone the repository
-2. Run `build {MAYA_VERSION}` in root of repository
+2. Run `build <MayaVersion>` in root of repository
+
+## Building on Other Systems
+
+1. Clone the repository
+2. Run `./build.sh <MayaVersion>`
+
+## Testing
+
+
 
 ## License 
 
