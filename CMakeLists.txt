@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.5)
 project(jSmear)
 
 set(PROJECT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT})
