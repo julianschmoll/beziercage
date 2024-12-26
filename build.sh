@@ -5,7 +5,19 @@
 #
 
 root_folder="$(pwd)"
-builddir="$root_folder/build/$1"
+
+case "$OSTYPE" in
+  solaris*) os="solaris" ;;
+  darwin*)  os="darwin" ;; 
+  linux*)   os="linux" ;;
+  bsd*)     os="bsd" ;;
+  msys*)    os="windows" ;;
+  cygwin*)  os="windows" ;;
+  *)        os="" ;;
+esac
+
+
+builddir="$root_folder/build/$1-$os"
 
 rm -rf "$builddir"
 mkdir -p "$builddir"

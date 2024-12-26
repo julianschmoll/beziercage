@@ -48,6 +48,16 @@ if [ -z "$mayapy" ] || [ ! -f "$mayapy" ]; then
   exit 1
 fi
 
+case "$OSTYPE" in
+  solaris*) os="solaris" ;;
+  darwin*)  os="darwin" ;; 
+  linux*)   os="linux" ;;
+  bsd*)     os="bsd" ;;
+  msys*)    os="windows" ;;
+  cygwin*)  os="windows" ;;
+  *)        os="" ;;
+esac
+
 echo "Running tests for Maya $version"
 echo "------------------------------------------------------"
-"$mayapy" "$testFile" "$thisDir" "$version"
+"$mayapy" "$testFile" "$thisDir" "$version-$os"
