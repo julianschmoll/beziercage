@@ -45,7 +45,7 @@
 class jSmear : public MPxDeformerNode {
 public:
     jSmear();
-
+    
     virtual ~jSmear();
 
     virtual MStatus doIt(const MArgList &);

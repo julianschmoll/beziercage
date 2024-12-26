@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Usage:
+#   ./build.sh <MayaVersion>
+#
+
+root_folder="$(pwd)"
+builddir="$root_folder/build/$1"
+
+rm -rf "$builddir"
+mkdir -p "$builddir"
+cd "$builddir"
+
+echo "Building jSmear for Maya$1"
+
+cmake -DMAYA_VERSION="$1" "$root_folder"
+cmake --build . --target install --config Release
+cmake --build . --target clean
+
+echo "Cleaning up build files"
+
+for item in "$builddir"/*; do
+  if [ "$(basename "$item")" != "jSmear" ]; then
+    rm -rf "$item"
+  fi
+done
+
+cd "$root_folder"
