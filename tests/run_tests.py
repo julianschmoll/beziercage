@@ -30,9 +30,11 @@ def _setup_environment():
     version = sys.argv[2]
     sys.path.append(path)
     root_path = Path(__file__).parent.parent
-    plug_in_path = Path(root_path / "build" / version / "jSmear" / "plug-ins")
+    build_path = Path(root_path / "build" / version)
+    plug_in_path = Path(build_path / "jSmear" / "plug-ins")
     if not plug_in_path.exists():
-        print("Please build Plugin before testing!")
+        print("Please build the Plugin before testing!")
+        print(f"Expected build path was: {build_path}")
         sys.exit(1)
     os.environ["MAYA_PLUG_IN_PATH"] = str(plug_in_path)
     maya.app.commands.processCommandList = _set_option_vars
