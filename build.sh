@@ -7,13 +7,10 @@
 root_folder="$(pwd)"
 
 case "$OSTYPE" in
-  solaris*) os="solaris" ;;
-  darwin*)  os="darwin" ;; 
-  linux*)   os="linux" ;;
-  bsd*)     os="bsd" ;;
-  msys*)    os="windows" ;;
-  cygwin*)  os="windows" ;;
-  *)        os="" ;;
+  darwin*)  os="macOS" ;; 
+  msys*)    os="Windows" ;;
+  cygwin*)  os="Windows" ;;
+  *)        os="$OSTYPE" ;;
 esac
 
 
@@ -23,7 +20,7 @@ rm -rf "$builddir"
 mkdir -p "$builddir"
 cd "$builddir"
 
-echo "Building jSmear for Maya$1"
+echo "Building jSmear for Maya $1 on $os"
 
 cmake -DMAYA_VERSION="$1" "$root_folder"
 cmake --build . --target install --config Release

@@ -2,7 +2,7 @@
 
 set "root_folder=%cd%"
 
-set builddir="%root_folder%/build/%1-windows"
+set builddir="%root_folder%/build/%1-Windows"
 del %builddir% /S /Q
 mkdir %builddir%
 

@@ -49,15 +49,12 @@ if [ -z "$mayapy" ] || [ ! -f "$mayapy" ]; then
 fi
 
 case "$OSTYPE" in
-  solaris*) os="solaris" ;;
-  darwin*)  os="darwin" ;; 
-  linux*)   os="linux" ;;
-  bsd*)     os="bsd" ;;
-  msys*)    os="windows" ;;
-  cygwin*)  os="windows" ;;
-  *)        os="" ;;
+  darwin*)  os="macOS" ;; 
+  msys*)    os="Windows" ;;
+  cygwin*)  os="Windows" ;;
+  *)        os="$OSTYPE" ;;
 esac
 
-echo "Running tests for Maya $version"
+echo "Testing jSmear for Maya $version on $os"
 echo "------------------------------------------------------"
 "$mayapy" "$testFile" "$thisDir" "$version-$os"
