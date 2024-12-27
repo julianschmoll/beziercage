@@ -26,17 +26,21 @@ def run_batch_tests():
 
 
 def _setup_environment():
-    path = sys.argv[1]
+    root_path = sys.argv[1]
     version = sys.argv[2]
-    sys.path.append(path)
-    root_path = Path(__file__).parent.parent
-    build_path = Path(root_path / "build" / version)
-    plug_in_path = Path(build_path / "jSmear" / "plug-ins")
-    if not plug_in_path.exists():
+
+    build_path = Path(root_path, "build", version, "jSmear")
+    plug_in_path = Path(build_path, "plug-ins")
+    scripts_path = Path(build_path, "scripts")
+
+    if not build_path.exists():
         print("Please build the Plugin before testing!")
         print(f"Expected build path was: {build_path}")
         sys.exit(1)
+
     os.environ["MAYA_PLUG_IN_PATH"] = str(plug_in_path)
+    sys.path.append(str(scripts_path))
+
     maya.app.commands.processCommandList = _set_option_vars
     maya.standalone.initialize(name="python")
 

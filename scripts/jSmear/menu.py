@@ -23,7 +23,7 @@ def create():
                     command=_create_deformer,
                     insertAfter=item,
                     parent=menu,
-                    annotation="Creates a jSmear Deformer on Current Selection with default options.",
+                    annotation="Creates jSmear Deformer on Current Selection.",
                     data=ID
                 )
                 cmds.menuItem(
@@ -40,17 +40,21 @@ def create():
 def destroy():
     """Destroys jSmear Maya Menu"""
     for menu in ['mainDeformMenu', 'mainRigDeformationsMenu']:
-        mel.eval('ChaDeformationsMenu MayaWindow|{0};'.format(menu))
+        mel.eval(f'ChaDeformationsMenu MayaWindow|{menu};')
         items = cmds.menu(menu, q=True, ia=True)
         for item in items:
-            data =  cmds.menuItem(item, q=True, data=True)
+            data = cmds.menuItem(item, q=True, data=True)
             if data == ID:
                 cmds.deleteUI(item, menuItem=True)
 
 
-def _create_deformer(*args, **kwargs):
-    pass
+def _create_deformer(*args, **kwargs):  # pylint: disable=unused-argument
+    # here we need to check saved option vars
+    cmds.jSmear()
 
 
-def _display_options(*args, **kwargs):
-    pass
+def _display_options(*args, **kwargs):  # pylint: disable=unused-argument
+    cmds.confirmDialog(
+        message="This is not yet implemented, sowwy :(",
+        button=["okiu"]
+    )

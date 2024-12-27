@@ -4,3 +4,5 @@ disable=
     assignment-from-no-return,
     # Ignoring this as pylint gives false positives with cmds commands
     unexpected-keyword-arg,
+    redundant-keyword-arg,
+    no-member,
