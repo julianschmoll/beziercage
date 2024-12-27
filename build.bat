@@ -17,7 +17,7 @@ cmake --build . --target clean
 echo Cleaning up build files
 
 for %%F in ("%builddir%\*") do (
-    if /I not "%%~nxF"=="jSmear" if /I not "%%~nxF"=="README.md" (
+    if /I not "%%~nxF"=="jSmear" if /I not "%%~nxF"=="USAGE.md" (
         del /q /f "%%F"
     )
 )
