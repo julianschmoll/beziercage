@@ -31,15 +31,9 @@ cmds.jSmear(help=True)
 
 ## Building
 
-### Building on Windows
-
 1. Clone the repository.
-2. Run `build <MayaVersion>` in the root of the repository.
-
-### Building on Other Systems
-
-1. Clone the repository.
-2. Run `./build.sh <MayaVersion>` in the root of the repository.
+2. Make sure cmake, maya and a c++ compiler is installed on your device.
+3. Either run `build <MayaVersion>` (Windows) or `./build.sh <MayaVersion>` (other systems) in the root of the repository.
 
 ## Testing
 
