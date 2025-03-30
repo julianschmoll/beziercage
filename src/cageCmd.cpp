@@ -1,29 +1,29 @@
-#include "jSmearCmd.hpp"
+#include "cageCmd.hpp"
 
-const char *jSmearCmd::kName = "jSmear";
+const char *cageCmd::kName = "cage";
 
-const char *jSmearCmd::kNameFlagShort = "-n";
-const char *jSmearCmd::kNameFlagLong = "-name";
+const char *cageCmd::kNameFlagShort = "-n";
+const char *cageCmd::kNameFlagLong = "-name";
 
-const char *jSmearCmd::kHelpFlagShort = "-h";
-const char *jSmearCmd::kHelpFlagLong = "-help";
+const char *cageCmd::kHelpFlagShort = "-h";
+const char *cageCmd::kHelpFlagLong = "-help";
 
 bool helpFlagSet = false;
 
 
 void DisplayHelp() {
     MString help;
-    help += "Flags of jSmear Command:\n";
-    help += "-name (-n):          String     Name of the jSmear node to create.\n";
+    help += "Flags of cage Command:\n";
+    help += "-name (-n):          String     Name of the cage node to create.\n";
     help += "-help (-h)           N/A        Display this text.\n";
     MGlobal::displayInfo(help);
 }
 
-jSmearCmd::jSmearCmd() : name_("jSmear#") {
+cageCmd::cageCmd() : name_("cage#") {
 }
 
 
-MSyntax jSmearCmd::newSyntax() {
+MSyntax cageCmd::newSyntax() {
     MSyntax syntax;
 
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
@@ -37,17 +37,17 @@ MSyntax jSmearCmd::newSyntax() {
 }
 
 
-void *jSmearCmd::creator() {
-    return new jSmearCmd;
+void *cageCmd::creator() {
+    return new cageCmd;
 }
 
 
-bool jSmearCmd::isUndoable() const {
+bool cageCmd::isUndoable() const {
     return true;
 }
 
 
-MStatus jSmearCmd::doIt(const MArgList &args) {
+MStatus cageCmd::doIt(const MArgList &args) {
     MStatus status;
 
     status = GatherCommandArguments(args);
@@ -57,11 +57,11 @@ MStatus jSmearCmd::doIt(const MArgList &args) {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     if (pathDriven_.length() == 0 && !helpFlagSet) {
-        MGlobal::displayError("jSmear requires at least 1 shape(s) to be specified or selected;  found 0.");
+        MGlobal::displayError("cage requires at least 1 shape(s) to be specified or selected;  found 0.");
         return MS::kFailure;
     }
 
-    MString command = "deformer -type jSmear -n \"" + name_ + "\"";
+    MString command = "deformer -type cage -n \"" + name_ + "\"";
 
     for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
         MFnDagNode fnDriven(pathDriven_[i]);
@@ -75,7 +75,7 @@ MStatus jSmearCmd::doIt(const MArgList &args) {
 }
 
 
-MStatus jSmearCmd::GetGeometryPaths() {
+MStatus cageCmd::GetGeometryPaths() {
     MStatus status;
 
     MItSelectionList iter(selectionList_);
@@ -94,7 +94,7 @@ MStatus jSmearCmd::GetGeometryPaths() {
 }
 
 
-MStatus jSmearCmd::GatherCommandArguments(const MArgList &args) {
+MStatus cageCmd::GatherCommandArguments(const MArgList &args) {
     MStatus status;
 
     MArgDatabase argData(syntax(), args);
@@ -115,7 +115,7 @@ MStatus jSmearCmd::GatherCommandArguments(const MArgList &args) {
 }
 
 
-MStatus jSmearCmd::redoIt() {
+MStatus cageCmd::redoIt() {
     MStatus status;
 
     if (helpFlagSet) {
@@ -158,7 +158,7 @@ MStatus jSmearCmd::redoIt() {
 }
 
 
-MStatus jSmearCmd::GetLatestDeformerNode() {
+MStatus cageCmd::GetLatestDeformerNode() {
     MStatus status;
     MObject oMesh = pathDriven_[0].node();
 
@@ -177,7 +177,7 @@ MStatus jSmearCmd::GetLatestDeformerNode() {
         oDeformerNode = itDG.currentItem();
         MFnDependencyNode fnNode(oDeformerNode, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
-        if (fnNode.typeId() == jSmear::id) {
+        if (fnNode.typeId() == cage::id) {
             oDeformerNode_ = oDeformerNode;
             return MS::kSuccess;
         }
@@ -186,7 +186,7 @@ MStatus jSmearCmd::GetLatestDeformerNode() {
 }
 
 
-MStatus jSmearCmd::undoIt() {
+MStatus cageCmd::undoIt() {
     MStatus status;
     status = dgMod_.undoIt();
     CHECK_MSTATUS_AND_RETURN_IT(status);

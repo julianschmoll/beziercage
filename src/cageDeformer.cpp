@@ -1,22 +1,22 @@
-# include "jSmearDeformer.hpp"
+# include "cageDeformer.hpp"
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
-MTypeId jSmear::id(0x0013f8c0);
+MTypeId cage::id(0x0013f8c0);
 
-MObject jSmear::aTime;
-MObject jSmear::aNormalOffset;
-MObject jSmear::aAngleMagnitude;
-MObject jSmear::aStartFrame;
-MObject jSmear::aSmearFrames;
-MObject jSmear::aMinSmearVelocity;
-MObject jSmear::aMaxSmearVelocity;
-MObject jSmear::aWorldMatrix;
+MObject cage::aTime;
+MObject cage::aNormalOffset;
+MObject cage::aAngleMagnitude;
+MObject cage::aStartFrame;
+MObject cage::aSmearFrames;
+MObject cage::aMinSmearVelocity;
+MObject cage::aMaxSmearVelocity;
+MObject cage::aWorldMatrix;
 
-const char *jSmear::kName = "jSmear";
+const char *cage::kName = "cage";
 
 
-MStatus jSmear::initialize() {
+MStatus cage::initialize() {
     MFnMatrixAttribute mAttr;
     MFnNumericAttribute nAttr;
     MFnUnitAttribute uAttr;
@@ -52,29 +52,29 @@ MStatus jSmear::initialize() {
     // add attribute to make shape of smear editable
 
     // Makes the deformer weight paintable
-    MGlobal::executeCommand("makePaintable -attrType multiFloat -sm deformer jSmear weights");
+    MGlobal::executeCommand("makePaintable -attrType multiFloat -sm deformer cage weights");
 
     return MS::kSuccess;
 }
 
 
-jSmear::jSmear() {
+cage::cage() {
     m_initialized = false;
     MThreadPool::init();
 }
 
 
-jSmear::~jSmear() {
+cage::~cage() {
     MThreadPool::release();
 }
 
 
-void *jSmear::creator() {
-    return new jSmear();
+void *cage::creator() {
+    return new cage();
 }
 
 
-MStatus jSmear::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &localToWorldMatrix,
+MStatus cage::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &localToWorldMatrix,
                        unsigned int geomIndex) {
     MStatus status;
 
@@ -94,22 +94,22 @@ MStatus jSmear::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &loca
 }
 
 
-bool jSmear::isUndoable() const {
+bool cage::isUndoable() const {
     return false;
 }
 
-MStatus jSmear::doIt(const MArgList &args) {
+MStatus cage::doIt(const MArgList &args) {
     MStatus status;
     return redoIt();
 }
 
-MStatus jSmear::redoIt() {
+MStatus cage::redoIt() {
     MStatus status;
     return MS::kSuccess;
 }
 
 
-MStatus jSmear::undoIt() {
+MStatus cage::undoIt() {
     MStatus status;
     return MS::kSuccess;
 }

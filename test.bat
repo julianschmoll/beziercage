@@ -32,7 +32,7 @@ if not "%explicitMayapy%"=="" (
     set mayapy="C:\Program Files\Autodesk\Maya%version%\bin\mayapy.exe"
 )
 
-echo Testing jSmar for Maya %version% on Windows.
+echo Testing cage for Maya %version% on Windows.
 echo ----------------------------------------------------------------------
 %mayapy% %testfile% %thisDir% %version%-Windows
 

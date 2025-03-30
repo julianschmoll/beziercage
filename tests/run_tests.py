@@ -1,4 +1,4 @@
-"""Runner, running all unittests for jSmear."""
+"""Runner, running all unittests for cage."""
 import os
 from pathlib import Path
 import sys
@@ -29,7 +29,7 @@ def _setup_environment():
     root_path = sys.argv[1]
     version = sys.argv[2]
 
-    build_path = Path(root_path, "build", version, "jSmear")
+    build_path = Path(root_path, "build", version, "cage")
     plug_in_path = Path(build_path, "plug-ins")
     scripts_path = Path(build_path, "scripts")
 
@@ -40,6 +40,7 @@ def _setup_environment():
 
     os.environ["MAYA_PLUG_IN_PATH"] = str(plug_in_path)
     sys.path.append(str(scripts_path))
+    sys.path.append(root_path)
 
     maya.app.commands.processCommandList = _set_option_vars
     maya.standalone.initialize(name="python")

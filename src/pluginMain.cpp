@@ -1,5 +1,5 @@
-#include "jSmearCmd.hpp"
-#include "jSmearDeformer.hpp"
+#include "cageCmd.hpp"
+#include "cageDeformer.hpp"
 
 #include <maya/MFnPlugin.h>
 #include <maya/MGlobal.h>
@@ -8,19 +8,19 @@ MStatus initializePlugin(MObject obj) {
   MStatus status;
   MFnPlugin plugin(obj, "Julian Schmoll", "1.0", "Any");
 
-  status = plugin.registerNode(jSmear::kName, jSmear::id, jSmear::creator, jSmear::initialize, MPxNode::kDeformerNode);
+  status = plugin.registerNode(cage::kName, cage::id, cage::creator, cage::initialize, MPxNode::kDeformerNode);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.registerCommand(jSmearCmd::kName, jSmearCmd::creator, jSmearCmd::newSyntax);
+  status = plugin.registerCommand(cageCmd::kName, cageCmd::creator, cageCmd::newSyntax);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
     MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
     MGlobal::executePythonCommandOnIdle(
-      "try:import jsmear.menu;jsmear.menu.create()\nexcept:MGlobal.displayWarning('Could not add jSmear Menu')");
+      "try:import cage.menu;cage.menu.create()\nexcept:MGlobal.displayWarning('Could not add cage Menu')");
   }
 
-  MGlobal::displayInfo("Initialized jSmear");
+  MGlobal::displayInfo("Initialized cage");
 
   return status;
 }
@@ -29,19 +29,19 @@ MStatus uninitializePlugin(MObject obj) {
   MStatus status;
   MFnPlugin plugin(obj);
 
-  status = plugin.deregisterCommand(jSmearCmd::kName);
+  status = plugin.deregisterCommand(cageCmd::kName);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.deregisterNode(jSmear::id);
+  status = plugin.deregisterNode(cage::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
     MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
     MGlobal::executePythonCommandOnIdle(
-      "try:import jsmear.menu;jsmear.menu.destroy()\nexcept:MGlobal.displayWarning('Could not remove jSmear Menu')");
+      "try:import cage.menu;cage.menu.destroy()\nexcept:MGlobal.displayWarning('Could not remove cage Menu')");
   }
 
-  MGlobal::displayInfo("Uninitialized jSmear");
+  MGlobal::displayInfo("Uninitialized cage");
 
   return status;
 }

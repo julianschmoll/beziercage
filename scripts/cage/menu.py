@@ -1,4 +1,4 @@
-"""jSmear Menu."""
+"""cage Menu."""
 from maya import cmds
 from maya import mel
 
@@ -7,7 +7,7 @@ ID = 0x0011580B
 
 
 def create():
-    """Creates jSmear Maya Menu."""
+    """Creates cage Maya Menu."""
     destroy()
     for menu in ['mainDeformMenu', 'mainRigDeformationsMenu']:
         mel.eval(f'ChaDeformationsMenu MayaWindow|{menu};')
@@ -18,27 +18,27 @@ def create():
                 section = cmds.menuItem(item, q=True, label=True)
             menu_label = cmds.menuItem(item, q=True, label=True)
             if menu_label == "Morph" and section == "Create":
-                jsmear = cmds.menuItem(
-                    label="jSmear",
+                cage = cmds.menuItem(
+                    label="cage",
                     command=_create_deformer,
                     insertAfter=item,
                     parent=menu,
-                    annotation="Creates jSmear Deformer on Current Selection.",
+                    annotation="Creates cage Deformer on Current Selection.",
                     data=ID
                 )
                 cmds.menuItem(
-                    label="jSmearOptions",
+                    label="cageOptions",
                     command=_display_options,
-                    insertAfter=jsmear,
+                    insertAfter=cage,
                     parent=menu,
                     optionBox=True,
-                    annotation="Opens Optioins Dialog for jSmear Deformer.",
+                    annotation="Opens Optioins Dialog for cage Deformer.",
                     data=ID
                 )
 
 
 def destroy():
-    """Destroys jSmear Maya Menu"""
+    """Destroys cage Maya Menu"""
     for menu in ['mainDeformMenu', 'mainRigDeformationsMenu']:
         mel.eval(f'ChaDeformationsMenu MayaWindow|{menu};')
         items = cmds.menu(menu, q=True, ia=True)
@@ -50,7 +50,7 @@ def destroy():
 
 def _create_deformer(*args, **kwargs):  # pylint: disable=unused-argument
     # here we need to check saved option vars
-    cmds.jSmear()
+    cmds.cage()
 
 
 def _display_options(*args, **kwargs):  # pylint: disable=unused-argument

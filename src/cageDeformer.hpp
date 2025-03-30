@@ -1,5 +1,5 @@
-#ifndef JSMEARDEFORMER_HPP
-#define JSMEARDEFORMER_HPP
+#ifndef cageDEFORMER_HPP
+#define cageDEFORMER_HPP
 
 
 #include <maya/MPlug.h>
@@ -42,11 +42,11 @@
 #include <array>
 
 
-class jSmear : public MPxDeformerNode {
+class cage : public MPxDeformerNode {
 public:
-    jSmear();
+    cage();
     
-    virtual ~jSmear();
+    virtual ~cage();
 
     virtual MStatus doIt(const MArgList &);
 

@@ -1,5 +1,5 @@
-#ifndef JSMEARCMD_HPP
-#define JSMEARCMD_HPP
+#ifndef cageCMD_HPP
+#define cageCMD_HPP
 
 #include <maya/MSelectionList.h>
 #include <maya/MDagPath.h>
@@ -28,11 +28,11 @@
 #include <maya/MPxCommand.h>
 
 #include "common.hpp"
-#include "jSmearDeformer.hpp"
+#include "cageDeformer.hpp"
 
-class jSmearCmd : public MPxCommand {
+class cageCmd : public MPxCommand {
 public:
-    jSmearCmd();
+    cageCmd();
 
     static void *creator();
 

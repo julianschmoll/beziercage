@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(jSmear)
+project(cage)
 
 set(PROJECT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT})
 set(CMAKE_INSTALL_PREFIX ${PROJECT_PATH})
@@ -9,5 +9,5 @@ add_subdirectory(src)
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/module.txt" "${PROJECT_PATH}/${PROJECT_NAME}.txt")
 
-install(DIRECTORY scripts DESTINATION jSmear)
+install(DIRECTORY scripts DESTINATION cage)
 install(FILES data/USAGE.md DESTINATION ${CMAKE_BINARY_DIR})

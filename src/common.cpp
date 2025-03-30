@@ -1,6 +1,6 @@
 #include "common.hpp"
-#include "jSmearCmd.hpp"
-#include "jSmearDeformer.hpp"
+#include "cageCmd.hpp"
+#include "cageDeformer.hpp"
 
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||

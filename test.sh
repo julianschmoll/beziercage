@@ -55,6 +55,6 @@ case "$OSTYPE" in
   *)        os="$OSTYPE" ;;
 esac
 
-echo "Testing jSmear for Maya $version on $os"
+echo "Testing cage for Maya $version on $os"
 echo "------------------------------------------------------"
 "$mayapy" "$testFile" "$thisDir" "$version-$os"

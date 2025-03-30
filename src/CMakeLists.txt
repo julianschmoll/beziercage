@@ -2,10 +2,10 @@ set(SOURCE_FILES
         "common.cpp"
         "common.hpp"
         "pluginMain.cpp"
-        "jSmearCmd.cpp"
-        "jSmearCmd.hpp"
-        "jSmearDeformer.cpp"
-        "jSmearDeformer.hpp"
+        "cageCmd.cpp"
+        "cageCmd.hpp"
+        "cageDeformer.cpp"
+        "cageDeformer.hpp"
 )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MAYA_CXX_FLAGS}")
 find_package(Maya REQUIRED)
@@ -16,4 +16,4 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 target_link_libraries(${PROJECT_NAME} ${MAYA_LIBRARIES})
 
 MAYA_PLUGIN(${PROJECT_NAME})
-install(TARGETS ${PROJECT_NAME} ${MAYA_TARGET_TYPE} DESTINATION jSmear/plug-ins)
+install(TARGETS ${PROJECT_NAME} ${MAYA_TARGET_TYPE} DESTINATION cage/plug-ins)
