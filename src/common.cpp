@@ -1,6 +1,4 @@
 #include "common.hpp"
-#include "cageCmd.hpp"
-#include "cageDeformer.hpp"
 
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||

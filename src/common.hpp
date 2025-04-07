@@ -5,6 +5,9 @@
 #ifndef cage_COMMON_HPP
 #define cage_COMMON_HPP
 
+#include "cageCmd.hpp"
+#include "cageDeformer.hpp"
+
 #include <maya/MDagPath.h>
 #include <maya/MDoubleArray.h>
 #include <maya/MFloatVectorArray.h>
