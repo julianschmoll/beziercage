@@ -6,6 +6,8 @@ set(SOURCE_FILES
         "cageCmd.hpp"
         "cageDeformer.cpp"
         "cageDeformer.hpp"
+        "cageMesh.cpp"
+        "cageMesh.hpp"
 )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MAYA_CXX_FLAGS}")
 find_package(Maya REQUIRED)
