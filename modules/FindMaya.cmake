@@ -1,6 +1,6 @@
 # Set a default Maya version if not specified
 if(NOT DEFINED MAYA_VERSION)
-    set(MAYA_VERSION 2024 CACHE STRING "Maya version")
+    set(MAYA_VERSION 2025 CACHE STRING "Maya version")
 endif()
 
 # OS Specific environment setup
@@ -45,7 +45,7 @@ find_path(MAYA_INCLUDE_DIR maya/MFn.h
 )
 
 find_library(MAYA_LIBRARY
-    NAMES 
+    NAMES
         OpenMaya
     PATHS
         ${MAYA_LOCATION}
@@ -68,7 +68,7 @@ if (NOT TARGET Maya::Maya)
         INTERFACE_COMPILE_DEFINITIONS "${MAYA_COMPILE_DEFINITIONS}"
         INTERFACE_INCLUDE_DIRECTORIES "${MAYA_INCLUDE_DIR}"
         IMPORTED_LOCATION "${MAYA_LIBRARY}")
-    
+
     if (APPLE AND ${CMAKE_CXX_COMPILER_ID} MATCHES "Clang" AND MAYA_VERSION LESS 2017)
         # Clang and Maya 2016 and older needs to use libstdc++
         set_target_properties(Maya::Maya PROPERTIES
@@ -80,7 +80,7 @@ endif()
 set(_MAYA_LIBRARIES OpenMayaAnim OpenMayaFX OpenMayaRender OpenMayaUI Foundation clew)
 foreach(MAYA_LIB ${_MAYA_LIBRARIES})
     find_library(MAYA_${MAYA_LIB}_LIBRARY
-        NAMES 
+        NAMES
             ${MAYA_LIB}
         PATHS
             ${MAYA_LOCATION}

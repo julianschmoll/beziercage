@@ -1,6 +1,6 @@
 #include "cageCmd.hpp"
 #include "cageDeformer.hpp"
-#include "cageMesh.hpp"
+#include "cageControlNode.hpp"
 
 #include <maya/MFnPlugin.h>
 #include <maya/MGlobal.h>
@@ -15,7 +15,7 @@ MStatus initializePlugin(MObject obj) {
   status = plugin.registerCommand(cageCmd::kName, cageCmd::creator, cageCmd::newSyntax);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.registerNode("animCube", animCube::id, animCube::creator, animCube::initialize);
+  status = plugin.registerNode("CageControlNode", CageControlNode::id, CageControlNode::creator, CageControlNode::initialize);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
@@ -39,7 +39,7 @@ MStatus uninitializePlugin(MObject obj) {
   status = plugin.deregisterNode(cage::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.deregisterNode(animCube::id);
+  status = plugin.deregisterNode(CageControlNode::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
