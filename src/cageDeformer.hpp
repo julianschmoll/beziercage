@@ -45,7 +45,7 @@
 class cage : public MPxDeformerNode {
 public:
     cage();
-    
+
     virtual ~cage();
 
     virtual MStatus doIt(const MArgList &);

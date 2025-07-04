@@ -75,7 +75,7 @@ void *cage::creator() {
 
 
 MStatus cage::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &localToWorldMatrix,
-                       unsigned int geomIndex) {
+                     unsigned int geomIndex) {
     MStatus status;
 
     // get velocity vector of each vert first

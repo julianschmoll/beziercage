@@ -1,9 +1,8 @@
 #include "cageCmd.hpp"
 #include "cageDeformer.hpp"
-#include "cageControlNode.hpp"
+#include "offsetPin.hpp"
 
 #include <maya/MFnPlugin.h>
-#include <maya/MGlobal.h>
 
 MStatus initializePlugin(MObject obj) {
   MStatus status;
@@ -15,7 +14,7 @@ MStatus initializePlugin(MObject obj) {
   status = plugin.registerCommand(cageCmd::kName, cageCmd::creator, cageCmd::newSyntax);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.registerNode("CageControlNode", CageControlNode::id, CageControlNode::creator, CageControlNode::initialize);
+  status = plugin.registerNode(offsetPin::typeName, offsetPin::id, offsetPin::creator, offsetPin::initialize);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
@@ -39,7 +38,7 @@ MStatus uninitializePlugin(MObject obj) {
   status = plugin.deregisterNode(cage::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
-  status = plugin.deregisterNode(CageControlNode::id);
+  status = plugin.deregisterNode(offsetPin::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   if (MGlobal::mayaState() == MGlobal::kInteractive) {
