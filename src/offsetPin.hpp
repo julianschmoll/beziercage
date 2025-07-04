@@ -48,9 +48,9 @@ public:
     static MObject aFaceVertices;
 
 private:
-    void buildGeometryLookup(MDataBlock &data);
+    MStatus buildGeometryLookup(MDataBlock &data);
 
-    void calculateBinding(MDataBlock &data, unsigned int index);
+    MStatus calculateBinding(MDataBlock &data, unsigned int index);
 
-    void setOutput(MDataBlock &data);
+    MStatus setOutput(MDataBlock &data);
 };

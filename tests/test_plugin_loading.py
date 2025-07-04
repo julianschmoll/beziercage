@@ -13,8 +13,8 @@ except ModuleNotFoundError:
 PLUGIN = "cage.mll"
 
 
-class TestcageLoading(unittest.TestCase):
-    """Test Initialization of cage."""
+class TestPluginLoading(unittest.TestCase):
+    """Test Initialization of plugin."""
 
     @decorators.plugin_loaded(PLUGIN)
     def test_load(self):

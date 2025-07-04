@@ -146,14 +146,14 @@ MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
  return MS::kSuccess;
 }
 
-void offsetPin::buildGeometryLookup(MDataBlock &data) {
- // TODO: Implement :)
+MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
+ return MS::kSuccess;
 }
 
-void offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
- // TODO: Implement :)
+MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
+ return MS::kSuccess;
 }
 
-void offsetPin::setOutput(MDataBlock &data) {
- // TODO: Implement :)
+MStatus offsetPin::setOutput(MDataBlock &data) {
+ return MS::kSuccess;
 }
