@@ -6,6 +6,10 @@
 #include <maya/MFnDependencyNode.h>
 #include <maya/MObject.h>
 #include <maya/MStatus.h>
+#include <maya/MArrayDataBuilder.h>
+#include <maya/MFnMesh.h>
+#include <maya/MFnIntArrayData.h>
+#include <maya/MArrayDataHandle.h>
 
 MTypeId offsetPin::id(0x001226C2);
 const char *offsetPin::typeName = "offsetPin";
@@ -147,6 +151,57 @@ MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
 }
 
 MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
+ MArrayDataHandle originalGeometryArray = data.inputArrayValue(aOriginalGeometry);
+ MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
+
+ if (geoLookupArray.elementCount() == originalGeometryArray.elementCount()) {
+  return MS::kSuccess;
+ }
+
+ MArrayDataBuilder geoBuilder = geoLookupArray.builder();
+ MIntArray triCounts, triVertices;
+
+ for (unsigned int geomIndex = 0; geomIndex < originalGeometryArray.elementCount(); ++geomIndex) {
+  originalGeometryArray.jumpToArrayElement(geomIndex);
+  MObject meshObj = originalGeometryArray.inputValue().asMesh();
+
+  if (meshObj.isNull()) {
+   continue;
+  }
+
+  MFnMesh fnMesh(meshObj);
+  fnMesh.getTriangles(triCounts, triVertices);
+
+  MDataHandle geomElem = geoBuilder.addElement(geomIndex);
+  MArrayDataHandle faceHandle = geomElem.child(aFaceVertices);
+  MArrayDataBuilder faceBuilder = faceHandle.builder();
+
+  int triIter = 0;
+  MIntArray triangleIndices;
+  MFnIntArrayData fnIntData;
+
+  for (unsigned int faceId = 0, faceCount = triCounts.length(); faceId < faceCount; ++faceId) {
+   int triCount = triCounts[faceId];
+   triangleIndices.setLength(triCount * 3);
+
+   for (int i = 0; i < triCount; ++i) {
+    triangleIndices[i * 3] = triVertices[triIter];
+    triangleIndices[i * 3 + 1] = triVertices[triIter + 1];
+    triangleIndices[i * 3 + 2] = triVertices[triIter + 2];
+    triIter += 3;
+   }
+
+   MObject intArrayObj = fnIntData.create(triangleIndices);
+   MDataHandle faceElem = faceBuilder.addElement(faceId);
+   faceElem.set(intArrayObj);
+  }
+
+  faceHandle.set(faceBuilder);
+ }
+
+ geoLookupArray.set(geoBuilder);
+ geoLookupArray.setAllClean();
+
  return MS::kSuccess;
 }
 
