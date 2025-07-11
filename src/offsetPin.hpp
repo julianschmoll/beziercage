@@ -95,5 +95,5 @@ private:
     * @param[out] dagPath The MDagPath.
     * @return MStatus indicating success or failure.
     */
-    MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath& dagPath);
+    MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath& dagPath);
 };
