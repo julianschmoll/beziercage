@@ -251,7 +251,6 @@ MStatus offsetPin::getTriangleVertexIndices(
 }
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
- std::cout << "Calculating binding for index: " << index << std::endl;
  DEBUG_MSG("Binding Geom Index: " << index);
  MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
  MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);

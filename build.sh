@@ -7,7 +7,7 @@
 root_folder="$(pwd)"
 
 case "$OSTYPE" in
-  darwin*)  os="macOS" ;; 
+  darwin*)  os="macOS" ;;
   msys*)    os="Windows" ;;
   cygwin*)  os="Windows" ;;
   *)        os="$OSTYPE" ;;
@@ -24,7 +24,7 @@ echo "Building cage for Maya $1 on $os"
 
 CMAKE_FLAGS=""
 if [ "$2" = "debug" ]; then
-  CMAKE_FLAGS="-DCMAKE_CXX_FLAGS='/DDEBUG /EHsc'"
+  CMAKE_FLAGS="-DCMAKE_CXX_FLAGS=/DDEBUG"
   echo "Building in debug mode"
 fi
 

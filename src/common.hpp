@@ -69,6 +69,19 @@ MStatus DeleteIntermediateObjects(MDagPath &path);
 */
 void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c, MFloatArray &coords);
 
+/**
+  Returns a DagPath of a mesh object.
+  @param[in] meshObj The mesh object.
+  @param[out] dagPath Reference to the DAG path.
+  @return MStatus, indicates success or failure.
+*/
 MStatus GetDagPathFromMesh(const MObject &meshObj, MDagPath &dagPath);
 
+/**
+  Creates a rotation matrix based on three points of a triangle.
+  @param[in] a First point of the triangle.
+  @param[in] b Second point of the triangle.
+  @param[in] c Third point of the triangle.
+  @param[out] m The computed rotation matrix.
+*/
 void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);

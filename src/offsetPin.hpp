@@ -48,17 +48,44 @@ public:
     static MObject aFaceVertices;
 
 private:
+    /**
+     * Builds a lookup table for the original geometry to store face vertices.
+     * @param[in,out] data The data block containing input and output values.
+     * @return MStatus indicating success or failure.
+     */
     static MStatus buildGeometryLookup(MDataBlock &data);
 
+    /**
+     * Calculates the binding of input matrix to the original geometry.
+     * @param[in,out] data The data block containing input and output values.
+     * @return MStatus indicating success or failure.
+     */
     MStatus bind(MDataBlock &data);
 
-    MStatus getVertexIndices(MDataBlock &data, unsigned int geoID, unsigned int faceID, unsigned int triangleID);
-
-    MStatus GetBindMesh(unsigned int geoID);
-
+    /**
+     * Generates bind data for a specific mesh based on the closest point.
+     * @param[in,out] data The data block containing input and output values.
+     * @param[in] index Index of the matrix to bind.
+     * @return MStatus indicating success or failure.
+     */
     MStatus calculateBinding(MDataBlock &data, unsigned int index);
 
+    /**
+     * Sets the output matrix plug based on the binding data.
+     * @param[in,out] data The data block containing input and output values.
+     * @return MStatus indicating success or failure.
+     */
     MStatus setOutput(MDataBlock &data);
 
-    MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId, MIntArray &vertexIndices) const;
+    /**
+     * Retrieves the vertex indices of a triangle in a specific geometry.
+     * @param[in] geoLookupArray The geometry lookup array handle.
+     * @param[in] geomIndex Index of the geometry in the geometryLookup attribute.
+     * @param[in] faceId Index of the face in the geometry.
+     * @param[in] triId Index of the triangle within the face.
+     * @param[out] vertexIndices The array to be filled with vertex indices.
+     * @return MStatus indicating success or failure.
+     */
+    MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
+                                     MIntArray &vertexIndices) const;
 };

@@ -12,7 +12,7 @@ echo Building cage for Maya%1
 
 set "CMAKE_FLAGS="
 if /I "%2"=="debug" (
-    set "CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=/DDEBUG/EHsc"
+    set "CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=/DDEBUG /EHsc"
     echo Building in debug mode
 )
 
