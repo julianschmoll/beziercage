@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Usage:
-#   ./build.sh <MayaVersion>
+#   ./build.sh <MayaVersion> [debug]
 #
 
 root_folder="$(pwd)"
 
 case "$OSTYPE" in
-  darwin*)  os="macOS" ;; 
+  darwin*)  os="macOS" ;;
   msys*)    os="Windows" ;;
   cygwin*)  os="Windows" ;;
   *)        os="$OSTYPE" ;;
@@ -22,7 +22,13 @@ cd "$builddir"
 
 echo "Building cage for Maya $1 on $os"
 
-cmake -DMAYA_VERSION="$1" "$root_folder"
+CMAKE_FLAGS=""
+if [ "$2" = "debug" ]; then
+  CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug"
+  echo "Building in debug mode"
+fi
+
+cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
 cmake --build . --target install --config Release
 cmake --build . --target clean
 

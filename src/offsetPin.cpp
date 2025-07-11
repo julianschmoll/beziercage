@@ -10,6 +10,14 @@
 #include <maya/MFnMesh.h>
 #include <maya/MFnIntArrayData.h>
 #include <maya/MArrayDataHandle.h>
+#include <maya/MMatrix.h>
+#include <maya/MFloatArray.h>
+#include <maya/MFnMeshData.h>
+#include <maya/MPoint.h>
+#include <maya/MMeshIntersector.h>
+
+#include "common.hpp"
+#include <limits>
 
 MTypeId offsetPin::id(0x001226C2);
 const char *offsetPin::typeName = "offsetPin";
@@ -144,7 +152,7 @@ MStatus offsetPin::initialize() {
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
  if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
  buildGeometryLookup(data);
- calculateBinding(data, 0);
+ bind(data);
  setOutput(data);
  data.setClean(plug);
  return MS::kSuccess;
@@ -205,7 +213,161 @@ MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
  return MS::kSuccess;
 }
 
+MStatus offsetPin::bind(MDataBlock &data) {
+ MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
+ MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
+
+ for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
+  inputMatrixArray.jumpToArrayElement(index);
+  MMatrix matrix = inputMatrixArray.inputValue().asMatrix();
+
+  if (bindDataArray.elementCount() > index) {
+   bindDataArray.jumpToArrayElement(index);
+   MMatrix bindMatrix = bindDataArray.inputValue().child(aBindMatrix).asMatrix();
+   if (matrix.isEquivalent(bindMatrix, 1e-6)) {
+    continue;
+   }
+  }
+  calculateBinding(data, index);
+ }
+ return MS::kSuccess;
+}
+
+MStatus offsetPin::getTriangleVertexIndices(
+ MArrayDataHandle &geoLookupArray,
+ unsigned int geomIndex,
+ int faceId,
+ int triId,
+ MIntArray &vertexIndices) const {
+ geoLookupArray.jumpToArrayElement(geomIndex);
+ MArrayDataHandle faceHandle = geoLookupArray.inputValue().child(aFaceVertices);
+ faceHandle.jumpToArrayElement(faceId);
+ MObject intArrayObj = faceHandle.inputValue().data();
+ MFnIntArrayData fnIntData(intArrayObj);
+ MIntArray allIndices = fnIntData.array();
+
+ vertexIndices.setLength(3);
+ vertexIndices[0] = allIndices[triId * 3];
+ vertexIndices[1] = allIndices[triId * 3 + 1];
+ vertexIndices[2] = allIndices[triId * 3 + 2];
+
+ return MS::kSuccess;
+}
+
+MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
+ MStatus status;
+ MFnDependencyNode fnNode(thisMObject(), &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlug origGeomPlug = fnNode.findPlug(aOriginalGeometry, false, &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlug elemPlug = origGeomPlug.elementByLogicalIndex(geomIndex, &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlugArray connections;
+ elemPlug.connectedTo(connections, true, false, &status);
+ if (status != MS::kSuccess || connections.length() == 0) return MS::kFailure;
+
+ MObject inputNode = connections[0].node();
+ if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
+
+ MFnDagNode dagNode(inputNode, &status);
+ if (status != MS::kSuccess) return status;
+
+ status = dagNode.getPath(dagPath);
+ return status;
+}
+
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
+ DEBUG_MSG("Binding Geom Index: " << index);
+ MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
+ MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
+ MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
+ MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
+ MArrayDataBuilder bindDataBuilder = bindDataArray.builder();
+
+ inputMatrixArray.jumpToArrayElement(index);
+ MMatrix inputMatrix = inputMatrixArray.inputValue().asMatrix();
+ MPoint inputPoint(inputMatrix[3][0], inputMatrix[3][1], inputMatrix[3][2]);
+
+ double minDistance = std::numeric_limits<double>::max();
+ unsigned int bestGeomIndex = 0;
+ MPoint bestClosestPoint;
+ MIntArray bestVertexIndices;
+ MMatrix bestTriangleMatrix;
+ MFloatArray bestBaryCoords;
+
+ for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
+  inputGeometryArray.jumpToArrayElement(geomIndex);
+  MObject meshObj = inputGeometryArray.inputValue().asMesh();
+  if (meshObj.isNull()) continue;
+
+  MFnMesh fnMesh(meshObj);
+
+  MDagPath dagPath;
+  // this is nasty as we dont want to access other dag objects from
+  // within the node but this way we can get the correct triangle id
+  // as bind is not called regularly this is the best way to do it
+  MStatus stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
+  if (stat != MS::kSuccess) continue;
+
+  MMatrix worldMatrix = dagPath.inclusiveMatrix();
+  MMeshIntersector intersector;
+  stat = intersector.create(dagPath.node(), worldMatrix);
+  if (stat != MS::kSuccess) continue;
+
+  MPointOnMesh pointOnMesh;
+  intersector.getClosestPoint(inputPoint, pointOnMesh);
+
+  int faceId = pointOnMesh.faceIndex();
+  int triId = pointOnMesh.triangleIndex();
+  MPoint pointOnMeshPoint = pointOnMesh.getPoint();
+  MPoint closestPoint = pointOnMeshPoint * worldMatrix;
+
+  double distance = (closestPoint - inputPoint).length();
+  if (distance < minDistance) {
+   minDistance = distance;
+   bestGeomIndex = geomIndex;
+   bestClosestPoint = closestPoint;
+
+   getTriangleVertexIndices(geoLookupArray, geomIndex, faceId, triId, bestVertexIndices);
+
+   MPoint A, B, C;
+   fnMesh.getPoint(bestVertexIndices[0], A, MSpace::kWorld);
+   fnMesh.getPoint(bestVertexIndices[1], B, MSpace::kWorld);
+   fnMesh.getPoint(bestVertexIndices[2], C, MSpace::kWorld);
+
+   RotationMatrixFromTri(A, B, C, bestTriangleMatrix);
+
+   GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
+  }
+ }
+
+ MDataHandle bindElem = bindDataBuilder.addElement(index);
+ bindElem.child(aBindMatrix).setMMatrix(inputMatrix);
+ bindElem.child(aBindTriangleMatrix).setMMatrix(bestTriangleMatrix);
+ bindElem.child(aBindDistance).setDouble(minDistance);
+ bindElem.child(aBindCoordinates).set3Double(
+  bestBaryCoords[0],
+  bestBaryCoords[1],
+  bestBaryCoords[2]
+ );
+ bindElem.child(aBindVertexIndices).set3Int(
+  bestVertexIndices[0],
+  bestVertexIndices[1],
+  bestVertexIndices[2]
+ );
+ bindElem.child(aBindGeomIndex).setInt(bestGeomIndex);
+
+ bindDataArray.set(bindDataBuilder);
+
+ DEBUG_MSG(
+  "BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
+ DEBUG_MSG(
+  "BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
+ DEBUG_MSG("BestBaryCoords: " << bestBaryCoords[0] << ", " << bestBaryCoords[1] << ", " << bestBaryCoords[2]);
+
  return MS::kSuccess;
 }
 

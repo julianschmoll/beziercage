@@ -2,8 +2,7 @@
   Contains various helper functions.
 */
 
-#ifndef cage_COMMON_HPP
-#define cage_COMMON_HPP
+#pragma once
 
 #include "cageCmd.hpp"
 #include "cageDeformer.hpp"
@@ -16,10 +15,18 @@
 #include <maya/MPoint.h>
 #include <maya/MPointArray.h>
 #include <maya/MString.h>
+#include <maya/MGlobal.h>
+#include <maya/MStreamUtils.h>
+
 #include <map>
 #include <vector>
 #include <set>
 
+#ifdef DEBUG
+    #define DEBUG_MSG(x) MStreamUtils::stdOutStream() << x << "\n";
+#else
+#define DEBUG_MSG(x)
+#endif
 
 /**
   Checks if provided path is for a shape node.
@@ -52,4 +59,21 @@ MStatus GetDagPath(MString &name, MDagPath &path);
  */
 MStatus DeleteIntermediateObjects(MDagPath &path);
 
-#endif
+/**
+  Calculates the barycentric coordinates of a point P in the triangle specified by points A,B,C.
+  @param[in] p The sample point.
+  @param[in] a Triangle point.
+  @param[in] b Triangle point.
+  @param[in] c Triangle point.
+  @param[out] coords Barycentric coordinates.
+*/
+void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c, MFloatArray &coords);
+
+/**
+  Creates a rotation matrix based on three points of a triangle.
+  @param[in] a First point of the triangle.
+  @param[in] b Second point of the triangle.
+  @param[in] c Third point of the triangle.
+  @param[out] m The computed rotation matrix.
+*/
+void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);
