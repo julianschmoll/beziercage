@@ -52,4 +52,16 @@ MStatus GetDagPath(MString &name, MDagPath &path);
  */
 MStatus DeleteIntermediateObjects(MDagPath &path);
 
-#endif
+/**
+  Calculates the barycentric coordinates of a point P in the triangle specified by points A,B,C.
+  @param[in] p The sample point.
+  @param[in] a Triangle point.
+  @param[in] b Triangle point.
+  @param[in] c Triangle point.
+  @param[out] coords Barycentric coordinates.
+*/
+void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c, MFloatArray &coords);
+
+MStatus GetDagPathFromMesh(const MObject &meshObj, MDagPath &dagPath);
+
+void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);
