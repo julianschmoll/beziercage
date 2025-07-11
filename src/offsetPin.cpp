@@ -264,8 +264,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
  double minDistance = std::numeric_limits<double>::max();
  unsigned int bestGeomIndex = 0;
- int bestFaceId = -1;
- int bestTriId = -1;
  MPoint bestClosestPoint;
  MIntArray bestVertexIndices;
  MMatrix bestTriangleMatrix;
@@ -293,8 +291,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
   if (distance < minDistance) {
    minDistance = distance;
    bestGeomIndex = geomIndex;
-   bestFaceId = faceId;
-   bestTriId = triId;
    bestClosestPoint = closestPoint;
 
    getTriangleVertexIndices(geoLookupArray, geomIndex, faceId, triId, bestVertexIndices);
@@ -328,7 +324,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
  bindDataArray.set(bindDataBuilder);
 
- DEBUG_MSG("BestGeomIndex: " << bestGeomIndex << ", BestFaceId: " << bestFaceId << ", BestTriId: " << bestTriId);
  DEBUG_MSG("BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
  DEBUG_MSG("BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
  DEBUG_MSG("BestBaryCoords: " << bestBaryCoords[0] << ", " << bestBaryCoords[1] << ", " << bestBaryCoords[2]);
