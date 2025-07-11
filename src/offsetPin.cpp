@@ -151,7 +151,7 @@ MStatus offsetPin::initialize() {
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
  if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
  buildGeometryLookup(data);
- calculateBinding(data, 0);
+ bind(data);
  setOutput(data);
  data.setClean(plug);
  return MS::kSuccess;
