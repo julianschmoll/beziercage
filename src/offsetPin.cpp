@@ -10,6 +10,10 @@
 #include <maya/MFnMesh.h>
 #include <maya/MFnIntArrayData.h>
 #include <maya/MArrayDataHandle.h>
+#include <maya/MMatrix.h>
+#include <maya/MFloatArray.h>
+
+#include "common.hpp"
 
 MTypeId offsetPin::id(0x001226C2);
 const char *offsetPin::typeName = "offsetPin";
@@ -205,7 +209,126 @@ MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
  return MS::kSuccess;
 }
 
+MStatus offsetPin::bind(MDataBlock &data) {
+ MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
+ MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
+
+ for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
+  inputMatrixArray.jumpToArrayElement(index);
+  MMatrix matrix = inputMatrixArray.inputValue().asMatrix();
+
+  if (bindDataArray.elementCount() > index) {
+   bindDataArray.jumpToArrayElement(index);
+   MMatrix bindMatrix = bindDataArray.inputValue().child(aBindMatrix).asMatrix();
+   if (matrix.isEquivalent(bindMatrix, 1e-6)) {
+    continue;
+   }
+  }
+  calculateBinding(data, index);
+ }
+ return MS::kSuccess;
+}
+
+MStatus offsetPin::getTriangleVertexIndices(
+ MArrayDataHandle &geoLookupArray,
+ unsigned int geomIndex,
+ int faceId,
+ int triId,
+ MIntArray &vertexIndices) const {
+ geoLookupArray.jumpToArrayElement(geomIndex);
+ MArrayDataHandle faceHandle = geoLookupArray.inputValue().child(aFaceVertices);
+ faceHandle.jumpToArrayElement(faceId);
+ MObject intArrayObj = faceHandle.inputValue().data();
+ MFnIntArrayData fnIntData(intArrayObj);
+ MIntArray allIndices = fnIntData.array();
+
+ vertexIndices.setLength(3);
+ vertexIndices[0] = allIndices[triId * 3];
+ vertexIndices[1] = allIndices[triId * 3 + 1];
+ vertexIndices[2] = allIndices[triId * 3 + 2];
+
+ return MS::kSuccess;
+}
+
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
+ std::cout << "Calculating binding for index: " << index << std::endl;
+ MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
+ MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
+ MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
+ MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
+ MArrayDataBuilder bindDataBuilder = bindDataArray.builder();
+
+ inputMatrixArray.jumpToArrayElement(index);
+ MMatrix inputMatrix = inputMatrixArray.inputValue().asMatrix();
+ MPoint inputPoint(inputMatrix[3][0], inputMatrix[3][1], inputMatrix[3][2]);
+
+ double minDistance = std::numeric_limits<double>::max();
+ unsigned int bestGeomIndex = 0;
+ int bestFaceId = -1;
+ int bestTriId = -1;
+ MPoint bestClosestPoint;
+ MIntArray bestVertexIndices;
+ MMatrix bestTriangleMatrix;
+ MFloatArray bestBaryCoords;
+
+ for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
+  inputGeometryArray.jumpToArrayElement(geomIndex);
+  MObject meshObj = inputGeometryArray.inputValue().asMesh();
+  if (meshObj.isNull()) continue;
+
+  MFnMesh fnMesh(meshObj);
+  MPoint closestPoint;
+  int faceId = -1;
+  MVector normal;
+  MStatus stat = fnMesh.getClosestPointAndNormal(
+   inputPoint, closestPoint, normal, MSpace::kWorld, &faceId, nullptr
+  );
+  if (stat != MS::kSuccess) continue;
+
+  int triId = 0;
+  int triangleVertices[3] = {0, 0, 0};
+  fnMesh.getPolygonTriangleVertices(faceId, triId, triangleVertices);
+
+  double distance = (closestPoint - inputPoint).length();
+  if (distance < minDistance) {
+   minDistance = distance;
+   bestGeomIndex = geomIndex;
+   bestFaceId = faceId;
+   bestTriId = triId;
+   bestClosestPoint = closestPoint;
+
+   getTriangleVertexIndices(geoLookupArray, geomIndex, faceId, triId, bestVertexIndices);
+
+   MPoint A, B, C;
+   fnMesh.getPoint(bestVertexIndices[0], A, MSpace::kWorld);
+   fnMesh.getPoint(bestVertexIndices[1], B, MSpace::kWorld);
+   fnMesh.getPoint(bestVertexIndices[2], C, MSpace::kWorld);
+
+   RotationMatrixFromTri(A, B, C, bestTriangleMatrix);
+
+   GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
+  }
+ }
+
+ MDataHandle bindElem = bindDataBuilder.addElement(index);
+ bindElem.child(aBindMatrix).setMMatrix(inputMatrix);
+ bindElem.child(aBindTriangleMatrix).setMMatrix(bestTriangleMatrix);
+ bindElem.child(aBindDistance).setDouble(minDistance);
+ bindElem.child(aBindCoordinates).set3Double(
+  bestBaryCoords[0],
+  bestBaryCoords[1],
+  bestBaryCoords[2]
+ );
+ bindElem.child(aBindVertexIndices).set3Int(
+  bestVertexIndices[0],
+  bestVertexIndices[1],
+  bestVertexIndices[2]
+ );
+ bindElem.child(aBindGeomIndex).setInt(bestGeomIndex);
+
+ bindDataArray.set(bindDataBuilder);
+
+
  return MS::kSuccess;
 }
 

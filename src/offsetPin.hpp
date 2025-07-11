@@ -50,7 +50,15 @@ public:
 private:
     static MStatus buildGeometryLookup(MDataBlock &data);
 
+    MStatus bind(MDataBlock &data);
+
+    MStatus getVertexIndices(MDataBlock &data, unsigned int geoID, unsigned int faceID, unsigned int triangleID);
+
+    MStatus GetBindMesh(unsigned int geoID);
+
     MStatus calculateBinding(MDataBlock &data, unsigned int index);
 
     MStatus setOutput(MDataBlock &data);
+
+    MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId, MIntArray &vertexIndices) const;
 };
