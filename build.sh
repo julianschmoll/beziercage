@@ -24,7 +24,7 @@ echo "Building cage for Maya $1 on $os"
 
 CMAKE_FLAGS=""
 if [ "$2" = "debug" ]; then
-  CMAKE_FLAGS="-DCMAKE_CXX_FLAGS=/DDEBUG"
+  CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug"
   echo "Building in debug mode"
 fi
 
