@@ -12,6 +12,9 @@
 #include <maya/MArrayDataHandle.h>
 #include <maya/MMatrix.h>
 #include <maya/MFloatArray.h>
+#include <maya/MFnMeshData.h>
+#include <maya/MPoint.h>
+#include <maya/MMeshIntersector.h>
 
 #include "common.hpp"
 
@@ -250,6 +253,31 @@ MStatus offsetPin::getTriangleVertexIndices(
  return MS::kSuccess;
 }
 
+MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
+ MStatus status;
+ MFnDependencyNode fnNode(thisMObject(), &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlug origGeomPlug = fnNode.findPlug(aOriginalGeometry, false, &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlug elemPlug = origGeomPlug.elementByLogicalIndex(geomIndex, &status);
+ if (status != MS::kSuccess) return status;
+
+ MPlugArray connections;
+ elemPlug.connectedTo(connections, true, false, &status);
+ if (status != MS::kSuccess || connections.length() == 0) return MS::kFailure;
+
+ MObject inputNode = connections[0].node();
+ if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
+
+ MFnDagNode dagNode(inputNode, &status);
+ if (status != MS::kSuccess) return status;
+
+ status = dagNode.getPath(dagPath);
+ return status;
+}
+
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  DEBUG_MSG("Binding Geom Index: " << index);
  MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
@@ -275,17 +303,26 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
   if (meshObj.isNull()) continue;
 
   MFnMesh fnMesh(meshObj);
-  MPoint closestPoint;
-  int faceId = -1;
-  MVector normal;
-  MStatus stat = fnMesh.getClosestPointAndNormal(
-   inputPoint, closestPoint, normal, MSpace::kWorld, &faceId, nullptr
-  );
+
+  MDagPath dagPath;
+  // this is nasty as we dont want to access other dag objects from
+  // within the node but this way we can get the correct triangle id
+  // as bind is not called regularly this is the best way to do it
+  MStatus stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
   if (stat != MS::kSuccess) continue;
 
-  int triId = 0;
-  int triangleVertices[3] = {0, 0, 0};
-  fnMesh.getPolygonTriangleVertices(faceId, triId, triangleVertices);
+  MMatrix worldMatrix = dagPath.inclusiveMatrix();
+  MMeshIntersector intersector;
+  stat = intersector.create(dagPath.node(), worldMatrix);
+  if (stat != MS::kSuccess) continue;
+
+  MPointOnMesh pointOnMesh;
+  intersector.getClosestPoint(inputPoint, pointOnMesh);
+
+  int faceId = pointOnMesh.faceIndex();
+  int triId = pointOnMesh.triangleIndex();
+  MPoint pointOnMeshPoint = pointOnMesh.getPoint();
+  MPoint closestPoint = pointOnMeshPoint * worldMatrix;
 
   double distance = (closestPoint - inputPoint).length();
   if (distance < minDistance) {
@@ -324,8 +361,10 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
  bindDataArray.set(bindDataBuilder);
 
- DEBUG_MSG("BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
- DEBUG_MSG("BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
+ DEBUG_MSG(
+  "BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
+ DEBUG_MSG(
+  "BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
  DEBUG_MSG("BestBaryCoords: " << bestBaryCoords[0] << ", " << bestBaryCoords[1] << ", " << bestBaryCoords[2]);
 
  return MS::kSuccess;

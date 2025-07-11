@@ -89,12 +89,6 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
     coords[2] = 1.0f - coords[0] - coords[1];
 }
 
-MStatus GetDagPathFromMesh(const MObject &meshObj, MDagPath &dagPath) {
-    if (meshObj.isNull()) return MS::kFailure;
-    MFnDagNode dagNode(meshObj);
-    return dagNode.getPath(dagPath);
-}
-
 void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m) {
     m.setToIdentity();
     MVector tangent = b - a;

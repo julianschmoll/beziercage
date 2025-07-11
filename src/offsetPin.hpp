@@ -88,4 +88,12 @@ private:
      */
     MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
                                      MIntArray &vertexIndices) const;
+
+    /**
+    * Retrieves the original geometry path from the plug.
+    * @param[in] geomIndex Index of the geometry.
+    * @param[out] dagPath The MDagPath.
+    * @return MStatus indicating success or failure.
+    */
+    MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath& dagPath);
 };
