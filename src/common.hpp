@@ -2,8 +2,7 @@
   Contains various helper functions.
 */
 
-#ifndef cage_COMMON_HPP
-#define cage_COMMON_HPP
+#pragma once
 
 #include "cageCmd.hpp"
 #include "cageDeformer.hpp"
@@ -16,10 +15,18 @@
 #include <maya/MPoint.h>
 #include <maya/MPointArray.h>
 #include <maya/MString.h>
+#include <maya/MGlobal.h>
+#include <maya/MStreamUtils.h>
+
 #include <map>
 #include <vector>
 #include <set>
 
+#ifdef DEBUG
+    #define DEBUG_MSG(x) MStreamUtils::stdOutStream() << x << "\n";
+#else
+#define DEBUG_MSG(x)
+#endif
 
 /**
   Checks if provided path is for a shape node.

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:
-#   ./build.sh <MayaVersion>
+#   ./build.sh <MayaVersion> [debug]
 #
 
 root_folder="$(pwd)"
@@ -22,7 +22,13 @@ cd "$builddir"
 
 echo "Building cage for Maya $1 on $os"
 
-cmake -DMAYA_VERSION="$1" "$root_folder"
+CMAKE_FLAGS=""
+if [ "$2" = "debug" ]; then
+  CMAKE_FLAGS="-DCMAKE_CXX_FLAGS='/DDEBUG /EHsc'"
+  echo "Building in debug mode"
+fi
+
+cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
 cmake --build . --target install --config Release
 cmake --build . --target clean
 

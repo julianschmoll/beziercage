@@ -252,6 +252,7 @@ MStatus offsetPin::getTriangleVertexIndices(
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  std::cout << "Calculating binding for index: " << index << std::endl;
+ DEBUG_MSG("Binding Geom Index: " << index);
  MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
  MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
  MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
@@ -328,6 +329,10 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
  bindDataArray.set(bindDataBuilder);
 
+ DEBUG_MSG("BestGeomIndex: " << bestGeomIndex << ", BestFaceId: " << bestFaceId << ", BestTriId: " << bestTriId);
+ DEBUG_MSG("BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
+ DEBUG_MSG("BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
+ DEBUG_MSG("BestBaryCoords: " << bestBaryCoords[0] << ", " << bestBaryCoords[1] << ", " << bestBaryCoords[2]);
 
  return MS::kSuccess;
 }

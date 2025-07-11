@@ -10,7 +10,13 @@ cd %builddir%
 
 echo Building cage for Maya%1
 
-cmake -A x64 -T v143 -DMAYA_VERSION=%1 %root_folder%
+set "CMAKE_FLAGS="
+if /I "%2"=="debug" (
+    set "CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=/DDEBUG/EHsc"
+    echo Building in debug mode
+)
+
+cmake -A x64 -T v143 -DMAYA_VERSION=%1 %CMAKE_FLAGS% %root_folder%
 cmake --build . --target install --config Release
 cmake --build . --target clean
 
