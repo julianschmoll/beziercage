@@ -1,4 +1,5 @@
 #include "common.hpp"
+#include <cmath>
 
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||
@@ -55,4 +56,35 @@ MStatus DeleteIntermediateObjects(MDagPath &path) {
         pathMesh = MDagPath(path);
     }
     return MS::kSuccess;
+}
+
+void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c,
+                               MFloatArray &coords) {
+    // Compute the normal of the triangle
+    MVector N = (b - a) ^ (c - a);
+    MVector unitN = N.normal();
+
+    coords.setLength(3);
+
+    // Compute twice area of triangle ABC
+    double areaABC = unitN * N;
+
+    // If the triangle is degenerate, just use one of the points.
+    if (fabs(areaABC) < 1e-8) {
+        coords[0] = 1.0f;
+        coords[1] = 0.0f;
+        coords[2] = 0.0f;
+        return;
+    }
+
+    // Compute a
+    double areaPBC = unitN * ((b - p) ^ (c - p));
+    coords[0] = (float) (areaPBC / areaABC);
+
+    // Compute b
+    double areaPCA = unitN * ((c - p) ^ (a - p));
+    coords[1] = (float) (areaPCA / areaABC);
+
+    // Compute c
+    coords[2] = 1.0f - coords[0] - coords[1];
 }
