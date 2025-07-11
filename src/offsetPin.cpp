@@ -17,6 +17,7 @@
 #include <maya/MMeshIntersector.h>
 
 #include "common.hpp"
+#include <limits>
 
 MTypeId offsetPin::id(0x001226C2);
 const char *offsetPin::typeName = "offsetPin";
