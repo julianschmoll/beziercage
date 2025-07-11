@@ -94,3 +94,41 @@ MStatus GetDagPathFromMesh(const MObject &meshObj, MDagPath &dagPath) {
     MFnDagNode dagNode(meshObj);
     return dagNode.getPath(dagPath);
 }
+
+void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m) {
+    m.setToIdentity();
+    MVector tangent = b - a;
+    MVector bitangent = c - a;
+    MVector normal = tangent ^ bitangent;
+
+    // if triangle is degenerate, set matrix to identity
+    if (normal.length() < 1e-8) {
+        return;
+    }
+
+    // build orthonormal basis by orthogonalizing the tangent and bitangent
+    normal.normalize();
+    tangent = tangent.normal();
+    tangent = (tangent - normal * (tangent * normal)).normal();
+    bitangent = (normal ^ tangent).normal();
+
+    m[0][0] = tangent.x;
+    m[0][1] = tangent.y;
+    m[0][2] = tangent.z;
+    m[0][3] = 0.0;
+
+    m[1][0] = bitangent.x;
+    m[1][1] = bitangent.y;
+    m[1][2] = bitangent.z;
+    m[1][3] = 0.0;
+
+    m[2][0] = -normal.x;
+    m[2][1] = -normal.y;
+    m[2][2] = -normal.z;
+    m[2][3] = 0.0;
+
+    m[3][0] = 0.0;
+    m[3][1] = 0.0;
+    m[3][2] = 0.0;
+    m[3][3] = 1.0;
+}
