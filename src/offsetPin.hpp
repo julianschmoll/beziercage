@@ -86,8 +86,8 @@ private:
      * @param[out] vertexIndices The array to be filled with vertex indices.
      * @return MStatus indicating success or failure.
      */
-    MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
-                                     MIntArray &vertexIndices) const;
+    static MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
+                                     MIntArray &vertexIndices) ;
 
     /**
     * Retrieves the original geometry path from the plug.
@@ -98,19 +98,21 @@ private:
     MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
 
     /**
-     * Calculates the output matrix based on bind data.
+     * Calculates the output matrix based on barycentric coordinates and triangle data.
      * @param[in] baryCoords Barycentric coordinates of the point in the triangle.
-     * @param[in] fnMesh The MFnMesh function set for the mesh.
-     * @param[in] triMatrix The transformation matrix of the triangle.
-     * @param[in] vertexIndices Indices of the vertices of the triangle.
+     * @param[in] A First vertex of the triangle.
+     * @param[in] B Second vertex of the triangle.
+     * @param[in] C Third vertex of the triangle.
+     * @param[in] triMatrix Transformation matrix of the triangle.
      * @param[in] offsetVector Optional offset vector to apply to the output position.
-     * @return The calculated output matrix.
+     * @return MMatrix representing the output position in world space.
      */
     static MMatrix calculateOutputMatrix(
         const MFloatArray &baryCoords,
-        MFnMesh &fnMesh,
+        const MPoint &A,
+        const MPoint &B,
+        const MPoint &C,
         const MMatrix &triMatrix,
-        const MIntArray &vertexIndices,
         const MVector *offsetVector = nullptr
     );
 };

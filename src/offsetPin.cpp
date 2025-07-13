@@ -18,6 +18,7 @@
 
 #include "common.hpp"
 #include <limits>
+#include <memory>
 
 MTypeId offsetPin::id(0x001226C2);
 const char *offsetPin::typeName = "offsetPin";
@@ -238,7 +239,7 @@ MStatus offsetPin::getTriangleVertexIndices(
  unsigned int geomIndex,
  int faceId,
  int triId,
- MIntArray &vertexIndices) const {
+ MIntArray &vertexIndices) {
  geoLookupArray.jumpToArrayElement(geomIndex);
  MArrayDataHandle faceHandle = geoLookupArray.inputValue().child(aFaceVertices);
  faceHandle.jumpToArrayElement(faceId);
@@ -297,33 +298,36 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  MIntArray bestVertexIndices;
  MMatrix bestTriangleMatrix;
  MFloatArray bestBaryCoords;
+ MPoint A, B, C, pointOnMeshPoint, closestPoint;
+ MMatrix worldMatrix;
+ MStatus stat;
+ MObject meshObj;
+ MPointOnMesh pointOnMesh;
 
  for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
   inputGeometryArray.jumpToArrayElement(geomIndex);
-  MObject meshObj = inputGeometryArray.inputValue().asMesh();
+  meshObj = inputGeometryArray.inputValue().asMesh();
   if (meshObj.isNull()) continue;
 
   MFnMesh fnMesh(meshObj);
-
   MDagPath dagPath;
   // this is nasty as we don't want to access other dag objects from
   // within the node but this way we can get the correct triangle id
   // as bind is not called regularly this is the best way to do it
-  MStatus stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
+  stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
   if (stat != MS::kSuccess) continue;
 
-  MMatrix worldMatrix = dagPath.inclusiveMatrix();
+  worldMatrix = dagPath.inclusiveMatrix();
   MMeshIntersector intersector;
   stat = intersector.create(dagPath.node(), worldMatrix);
   if (stat != MS::kSuccess) continue;
 
-  MPointOnMesh pointOnMesh;
   intersector.getClosestPoint(inputPoint, pointOnMesh);
 
   int faceId = pointOnMesh.faceIndex();
   int triId = pointOnMesh.triangleIndex();
-  MPoint pointOnMeshPoint = pointOnMesh.getPoint();
-  MPoint closestPoint = pointOnMeshPoint * worldMatrix;
+  pointOnMeshPoint = pointOnMesh.getPoint();
+  closestPoint = pointOnMeshPoint * worldMatrix;
 
   double distance = (closestPoint - inputPoint).length();
   if (distance < minDistance) {
@@ -333,7 +337,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
    getTriangleVertexIndices(geoLookupArray, geomIndex, faceId, triId, bestVertexIndices);
 
-   MPoint A, B, C;
    fnMesh.getPoint(bestVertexIndices[0], A, MSpace::kWorld);
    fnMesh.getPoint(bestVertexIndices[1], B, MSpace::kWorld);
    fnMesh.getPoint(bestVertexIndices[2], C, MSpace::kWorld);
@@ -360,13 +363,15 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  );
  bindElem.child(aBindGeomIndex).setInt(bestGeomIndex);
 
- MObject meshObj = inputGeometryArray.inputValue().asMesh();
+ inputGeometryArray.jumpToArrayElement(bestGeomIndex);
+ meshObj = inputGeometryArray.inputValue().asMesh();
  MFnMesh fnMesh(meshObj);
  MMatrix deformMatrix = calculateOutputMatrix(
-  bestBaryCoords,
-  fnMesh,
-  bestTriangleMatrix,
-  bestVertexIndices
+     bestBaryCoords,
+     A,
+     B,
+     C,
+     bestTriangleMatrix
  );
  MVector deformTranslation(
   deformMatrix[3][0],
@@ -389,20 +394,15 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
 MMatrix offsetPin::calculateOutputMatrix(
  const MFloatArray &baryCoords,
- MFnMesh &fnMesh,
+ const MPoint &A,
+ const MPoint &B,
+ const MPoint &C,
  const MMatrix &triMatrix,
- const MIntArray &vertexIndices,
  const MVector *offsetVector
 ) {
- MPoint A, B, C;
- fnMesh.getPoint(vertexIndices[0], A, MSpace::kWorld);
- fnMesh.getPoint(vertexIndices[1], B, MSpace::kWorld);
- fnMesh.getPoint(vertexIndices[2], C, MSpace::kWorld);
-
- MVector interp =
-   MVector(A) * baryCoords[0] +
-   MVector(B) * baryCoords[1] +
-   MVector(C) * baryCoords[2];
+ MVector interp = MVector(A) * baryCoords[0] +
+                  MVector(B) * baryCoords[1] +
+                  MVector(C) * baryCoords[2];
 
  MMatrix newTriMatrix;
  RotationMatrixFromTri(A, B, C, newTriMatrix);
@@ -425,47 +425,53 @@ MStatus offsetPin::setOutput(MDataBlock &data) {
  MArrayDataHandle outputMatrixArray = data.outputArrayValue(aOutputMatrix);
  MArrayDataBuilder builder = outputMatrixArray.builder();
 
+ std::vector<std::unique_ptr<MFnMesh> > meshCache(inputGeometryArray.elementCount());
+ for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
+  inputGeometryArray.jumpToArrayElement(geomIndex);
+  MObject meshObj = inputGeometryArray.inputValue().asMesh();
+  if (!meshObj.isNull()) {
+   meshCache[geomIndex] = std::make_unique<MFnMesh>(meshObj);
+  }
+ }
+
+ MIntArray vertexIndices(3);
+ MFloatArray baryCoordsArr(3);
+
  for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
   if (bindDataArray.elementCount() <= index) continue;
   bindDataArray.jumpToArrayElement(index);
 
-  MIntArray vertexIndices(3);
-  double baryCoords[3];
-  MMatrix triMatrix;
-  MVector offsetVector;
-  int geomIndex;
-
   MDataHandle bindElem = bindDataArray.inputValue();
 
-  const int* vertPtr = bindElem.child(aBindVertexIndices).asInt3();
+  const int *vertPtr = bindElem.child(aBindVertexIndices).asInt3();
   vertexIndices[0] = vertPtr[0];
   vertexIndices[1] = vertPtr[1];
   vertexIndices[2] = vertPtr[2];
 
-  const double* baryPtr = bindElem.child(aBindCoordinates).asDouble3();
-  baryCoords[0] = baryPtr[0];
-  baryCoords[1] = baryPtr[1];
-  baryCoords[2] = baryPtr[2];
+  const double *baryPtr = bindElem.child(aBindCoordinates).asDouble3();
+  baryCoordsArr[0] = static_cast<float>(baryPtr[0]);
+  baryCoordsArr[1] = static_cast<float>(baryPtr[1]);
+  baryCoordsArr[2] = static_cast<float>(baryPtr[2]);
 
-  triMatrix = bindElem.child(aBindTriangleMatrix).asMatrix();
-  offsetVector = bindElem.child(aBindOffsetVector).asVector();
-  geomIndex = bindElem.child(aBindGeomIndex).asInt();
+  MMatrix triMatrix = bindElem.child(aBindTriangleMatrix).asMatrix();
+  MVector offsetVector = bindElem.child(aBindOffsetVector).asVector();
+  int geomIndex = bindElem.child(aBindGeomIndex).asInt();
 
-  inputGeometryArray.jumpToArrayElement(geomIndex);
-  MObject meshObj = inputGeometryArray.inputValue().asMesh();
-  if (meshObj.isNull()) continue;
-  MFnMesh fnMesh(meshObj);
+  if (geomIndex < 0 || geomIndex >= static_cast<int>(meshCache.size())) continue;
+  MFnMesh *fnMesh = meshCache[geomIndex].get();
+  if (!fnMesh) continue;
 
-  MFloatArray baryCoordsArr(3);
-  baryCoordsArr[0] = static_cast<float>(baryCoords[0]);
-  baryCoordsArr[1] = static_cast<float>(baryCoords[1]);
-  baryCoordsArr[2] = static_cast<float>(baryCoords[2]);
+  MPoint A, B, C;
+  fnMesh->getPoint(vertexIndices[0], A, MSpace::kWorld);
+  fnMesh->getPoint(vertexIndices[1], B, MSpace::kWorld);
+  fnMesh->getPoint(vertexIndices[2], C, MSpace::kWorld);
 
   MMatrix outMatrix = calculateOutputMatrix(
    baryCoordsArr,
-   fnMesh,
+   A,
+   B,
+   C,
    triMatrix,
-   vertexIndices,
    &offsetVector
   );
 
