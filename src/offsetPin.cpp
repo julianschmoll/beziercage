@@ -306,7 +306,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
   MFnMesh fnMesh(meshObj);
 
   MDagPath dagPath;
-  // this is nasty as we dont want to access other dag objects from
+  // this is nasty as we don't want to access other dag objects from
   // within the node but this way we can get the correct triangle id
   // as bind is not called regularly this is the best way to do it
   MStatus stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
@@ -360,6 +360,22 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  );
  bindElem.child(aBindGeomIndex).setInt(bestGeomIndex);
 
+ MObject meshObj = inputGeometryArray.inputValue().asMesh();
+ MFnMesh fnMesh(meshObj);
+ MMatrix deformMatrix = calculateOutputMatrix(
+  bestBaryCoords,
+  fnMesh,
+  bestTriangleMatrix,
+  bestVertexIndices
+ );
+ MVector deformTranslation(
+  deformMatrix[3][0],
+  deformMatrix[3][1],
+  deformMatrix[3][2]
+ );
+ MVector offsetVector = -deformTranslation;
+ bindElem.child(aBindOffsetVector).set3Double(offsetVector.x, offsetVector.y, offsetVector.z);
+
  bindDataArray.set(bindDataBuilder);
 
  DEBUG_MSG(
@@ -371,6 +387,93 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  return MS::kSuccess;
 }
 
+MMatrix offsetPin::calculateOutputMatrix(
+ const MFloatArray &baryCoords,
+ MFnMesh &fnMesh,
+ const MMatrix &triMatrix,
+ const MIntArray &vertexIndices,
+ const MVector *offsetVector
+) {
+ MPoint A, B, C;
+ fnMesh.getPoint(vertexIndices[0], A, MSpace::kWorld);
+ fnMesh.getPoint(vertexIndices[1], B, MSpace::kWorld);
+ fnMesh.getPoint(vertexIndices[2], C, MSpace::kWorld);
+
+ MVector interp =
+   MVector(A) * baryCoords[0] +
+   MVector(B) * baryCoords[1] +
+   MVector(C) * baryCoords[2];
+
+ MMatrix newTriMatrix;
+ RotationMatrixFromTri(A, B, C, newTriMatrix);
+
+ MMatrix localMatrix = triMatrix.inverse() * newTriMatrix;
+ MTransformationMatrix xform(localMatrix);
+ xform.addTranslation(interp, MSpace::kWorld);
+
+ if (offsetVector) {
+  xform.addTranslation(*offsetVector, MSpace::kObject);
+ }
+
+ return xform.asMatrix();
+}
+
 MStatus offsetPin::setOutput(MDataBlock &data) {
+ MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
+ MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
+ MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
+ MArrayDataHandle outputMatrixArray = data.outputArrayValue(aOutputMatrix);
+ MArrayDataBuilder builder = outputMatrixArray.builder();
+
+ for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
+  if (bindDataArray.elementCount() <= index) continue;
+  bindDataArray.jumpToArrayElement(index);
+
+  MIntArray vertexIndices(3);
+  double baryCoords[3];
+  MMatrix triMatrix;
+  MVector offsetVector;
+  int geomIndex;
+
+  MDataHandle bindElem = bindDataArray.inputValue();
+
+  const int* vertPtr = bindElem.child(aBindVertexIndices).asInt3();
+  vertexIndices[0] = vertPtr[0];
+  vertexIndices[1] = vertPtr[1];
+  vertexIndices[2] = vertPtr[2];
+
+  const double* baryPtr = bindElem.child(aBindCoordinates).asDouble3();
+  baryCoords[0] = baryPtr[0];
+  baryCoords[1] = baryPtr[1];
+  baryCoords[2] = baryPtr[2];
+
+  triMatrix = bindElem.child(aBindTriangleMatrix).asMatrix();
+  offsetVector = bindElem.child(aBindOffsetVector).asVector();
+  geomIndex = bindElem.child(aBindGeomIndex).asInt();
+
+  inputGeometryArray.jumpToArrayElement(geomIndex);
+  MObject meshObj = inputGeometryArray.inputValue().asMesh();
+  if (meshObj.isNull()) continue;
+  MFnMesh fnMesh(meshObj);
+
+  MFloatArray baryCoordsArr(3);
+  baryCoordsArr[0] = static_cast<float>(baryCoords[0]);
+  baryCoordsArr[1] = static_cast<float>(baryCoords[1]);
+  baryCoordsArr[2] = static_cast<float>(baryCoords[2]);
+
+  MMatrix outMatrix = calculateOutputMatrix(
+   baryCoordsArr,
+   fnMesh,
+   triMatrix,
+   vertexIndices,
+   &offsetVector
+  );
+
+  MDataHandle elem = builder.addElement(index);
+  elem.setMMatrix(outMatrix);
+ }
+
+ outputMatrixArray.set(builder);
+ outputMatrixArray.setAllClean();
  return MS::kSuccess;
 }

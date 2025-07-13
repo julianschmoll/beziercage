@@ -75,7 +75,7 @@ private:
      * @param[in,out] data The data block containing input and output values.
      * @return MStatus indicating success or failure.
      */
-    MStatus setOutput(MDataBlock &data);
+    static MStatus setOutput(MDataBlock &data);
 
     /**
      * Retrieves the vertex indices of a triangle in a specific geometry.
@@ -95,5 +95,22 @@ private:
     * @param[out] dagPath The MDagPath.
     * @return MStatus indicating success or failure.
     */
-    MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath& dagPath);
+    MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
+
+    /**
+     * Calculates the output matrix based on bind data.
+     * @param[in] baryCoords Barycentric coordinates of the point in the triangle.
+     * @param[in] fnMesh The MFnMesh function set for the mesh.
+     * @param[in] triMatrix The transformation matrix of the triangle.
+     * @param[in] vertexIndices Indices of the vertices of the triangle.
+     * @param[in] offsetVector Optional offset vector to apply to the output position.
+     * @return The calculated output matrix.
+     */
+    static MMatrix calculateOutputMatrix(
+        const MFloatArray &baryCoords,
+        MFnMesh &fnMesh,
+        const MMatrix &triMatrix,
+        const MIntArray &vertexIndices,
+        const MVector *offsetVector = nullptr
+    );
 };
