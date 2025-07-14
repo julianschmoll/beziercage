@@ -103,7 +103,7 @@ private:
      * @param[in] A First vertex of the triangle.
      * @param[in] B Second vertex of the triangle.
      * @param[in] C Third vertex of the triangle.
-     * @param[in] triMatrix Transformation matrix of the triangle.
+     * @param[in] bindTriangleMatrix Transformation matrix of the triangle.
      * @param[in] offsetVector Optional offset vector to apply to the output position.
      * @return MMatrix representing the output position in world space.
      */
@@ -112,7 +112,7 @@ private:
         const MPoint &A,
         const MPoint &B,
         const MPoint &C,
-        const MMatrix &triMatrix,
+        const MMatrix &bindTriangleMatrix,
         const MVector *offsetVector = nullptr
     );
 };

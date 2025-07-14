@@ -367,11 +367,11 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  meshObj = inputGeometryArray.inputValue().asMesh();
  MFnMesh fnMesh(meshObj);
  MMatrix deformMatrix = calculateOutputMatrix(
-     bestBaryCoords,
-     A,
-     B,
-     C,
-     bestTriangleMatrix
+  bestBaryCoords,
+  A,
+  B,
+  C,
+  bestTriangleMatrix
  );
  MVector deformTranslation(
   deformMatrix[3][0],
@@ -397,25 +397,28 @@ MMatrix offsetPin::calculateOutputMatrix(
  const MPoint &A,
  const MPoint &B,
  const MPoint &C,
- const MMatrix &triMatrix,
+ const MMatrix &bindTriangleMatrix,
  const MVector *offsetVector
 ) {
- MVector interp = MVector(A) * baryCoords[0] +
-                  MVector(B) * baryCoords[1] +
-                  MVector(C) * baryCoords[2];
-
- MMatrix newTriMatrix;
- RotationMatrixFromTri(A, B, C, newTriMatrix);
-
- MMatrix localMatrix = triMatrix.inverse() * newTriMatrix;
- MTransformationMatrix xform(localMatrix);
- xform.addTranslation(interp, MSpace::kWorld);
+ MVector interpolatedPosition = MVector(A) * baryCoords[0] +
+                                MVector(B) * baryCoords[1] +
+                                MVector(C) * baryCoords[2];
+ MMatrix outputMatrix;
+ RotationMatrixFromTri(A, B, C, outputMatrix);
+ outputMatrix = bindTriangleMatrix.inverse() * outputMatrix;
 
  if (offsetVector) {
-  xform.addTranslation(*offsetVector, MSpace::kObject);
+  // Transform offset vector to local space of the triangle
+  MVector offset = (*offsetVector) * outputMatrix;
+  outputMatrix[3][0] = interpolatedPosition.x + offset.x;
+  outputMatrix[3][1] = interpolatedPosition.y + offset.y;
+  outputMatrix[3][2] = interpolatedPosition.z + offset.z;
+ } else {
+  outputMatrix[3][0] = interpolatedPosition.x;
+  outputMatrix[3][1] = interpolatedPosition.y;
+  outputMatrix[3][2] = interpolatedPosition.z;
  }
-
- return xform.asMatrix();
+ return outputMatrix;
 }
 
 MStatus offsetPin::setOutput(MDataBlock &data) {
