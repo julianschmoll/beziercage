@@ -123,13 +123,14 @@ MStatus bezierCage::initialize() {
     addAttribute(aGeometryBindData);
 
     // Attribute affects
-    attributeAffects(aPatchMatrices, outputGeom);
-    attributeAffects(aMatrix, outputGeom);
-    attributeAffects(aThreshDist, outputGeom);
-    attributeAffects(aBindUV, outputGeom);
-    attributeAffects(aBindDistance, outputGeom);
-    attributeAffects(aBindPatchIndex, outputGeom);
-    attributeAffects(aDirty, outputGeom);
+    status = attributeAffects(aPatchMatrices, outputGeom);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = attributeAffects(aThreshDist, outputGeom);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = attributeAffects(aGeometryBindData, outputGeom);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = attributeAffects(aDirty, outputGeom);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MString paintCmd;
     paintCmd.format("makePaintable -attrType multiFloat -shapeMode deformer ^1s weights",
