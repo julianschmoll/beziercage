@@ -144,8 +144,8 @@ void *bezierCage::creator() {
 }
 
 
-MStatus bezierCage::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &localToWorldMatrix,
-                           unsigned int geomIndex) {
+MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                           unsigned int geometryIndex) {
     MStatus status;
     return MS::kSuccess;
 }
