@@ -23,7 +23,7 @@ cmake --build . --target clean
 echo Cleaning up build files
 
 for %%F in ("%builddir%\*") do (
-    if /I not "%%~nxF"=="cage" if /I not "%%~nxF"=="USAGE.md" (
+    if /I not "%%~nxF"=="cage" if /I not "%%~nxF"=="USAGE.md" if /I not "%%~nxF"=="cage.mod" (
         del /q /f "%%F"
     )
 )
