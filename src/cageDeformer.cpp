@@ -6,6 +6,8 @@
 #include <maya/MFnMessageAttribute.h>
 #include <maya/MFnTypedAttribute.h>
 #include <maya/MGlobal.h>
+#include <maya/MArrayDataBuilder.h>
+#include <maya/MGlobal.h>
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
@@ -147,6 +149,48 @@ void *bezierCage::creator() {
 
 MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                            unsigned int geometryIndex) {
-    MStatus status;
+    updateBindPreMatrixPlugs(dataBlock);
+    float fEnvelope = dataBlock.inputValue(envelope).asFloat();
+    if (fEnvelope == 0.0f) { return MS::kSuccess; }
+
+    if (bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex) == false) {
+        return MS::kFailure;
+    }
+
     return MS::kSuccess;
+}
+
+bool bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                      unsigned int geometryIndex) {
+    return true;
+}
+
+void bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
+    MArrayDataHandle patchMatrixArray = dataBlock.inputArrayValue(aPatchMatrices);
+    MArrayDataHandle patchBindPreMatrixArray = dataBlock.inputArrayValue(aPatchBindPreMatrices);
+
+    MArrayDataBuilder patchPreBuilder = patchBindPreMatrixArray.builder();
+
+    for (unsigned int patchIdx = 0; patchIdx < patchMatrixArray.elementCount(); ++patchIdx) {
+        MDataHandle elemHandle = patchPreBuilder.addElement(patchIdx);
+        MArrayDataHandle preMatrixHandle = elemHandle.child(aBindPreMatrix);
+        MArrayDataBuilder preMatrixBuilder = preMatrixHandle.builder();
+
+        patchMatrixArray.jumpToArrayElement(patchIdx);
+        MDataHandle matrixHandle = patchMatrixArray.inputValue().child(aMatrix);
+        MArrayDataHandle matrixArray(matrixHandle);
+
+        for (unsigned int matrixIdx = 0; matrixIdx < matrixArray.elementCount(); ++matrixIdx) {
+            if (matrixIdx < preMatrixHandle.elementCount()) {
+                continue;
+            }
+            matrixArray.jumpToArrayElement(matrixIdx);
+            MMatrix originalMatrix = matrixArray.inputValue().asMatrix();
+            MDataHandle elem = preMatrixBuilder.addElement(matrixIdx);
+            elem.setMMatrix(originalMatrix);
+        }
+        preMatrixHandle.set(preMatrixBuilder);
+    }
+    patchBindPreMatrixArray.set(patchPreBuilder);
+    patchBindPreMatrixArray.setAllClean();
 }
