@@ -7,9 +7,6 @@
 #include <maya/MFnTypedAttribute.h>
 #include <maya/MGlobal.h>
 #include <maya/MArrayDataBuilder.h>
-#include <maya/MGlobal.h>
-
-
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId bezierCage::id(0x0013f8c0);
 
