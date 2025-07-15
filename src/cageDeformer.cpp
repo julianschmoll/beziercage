@@ -19,9 +19,8 @@ void *bezierCage::creator() {
 }
 
 
-MStatus bezierCage::deform(MDataBlock &data, MItGeometry &itGeo, const MMatrix &localToWorldMatrix,
-                     unsigned int geomIndex) {
-    MStatus status;
+MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                     unsigned int geometryIndex) {
 
     // get velocity vector of each vert first
     // get normalized velocity vector as well (by dividing each component by the original length)
