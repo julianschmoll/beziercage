@@ -177,7 +177,7 @@ MStatus cageCmd::GetLatestDeformerNode() {
         oDeformerNode = itDG.currentItem();
         MFnDependencyNode fnNode(oDeformerNode, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
-        if (fnNode.typeId() == cage::id) {
+        if (fnNode.typeId() == bezierCage::id) {
             oDeformerNode_ = oDeformerNode;
             return MS::kSuccess;
         }

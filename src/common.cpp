@@ -116,9 +116,9 @@ void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MM
     m[1][2] = bitangent.z;
     m[1][3] = 0.0;
 
-    m[2][0] = -normal.x;
-    m[2][1] = -normal.y;
-    m[2][2] = -normal.z;
+    m[2][0] = normal.x;
+    m[2][1] = normal.y;
+    m[2][2] = normal.z;
     m[2][3] = 0.0;
 
     m[3][0] = 0.0;

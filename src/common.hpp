@@ -17,6 +17,7 @@
 #include <maya/MString.h>
 #include <maya/MGlobal.h>
 #include <maya/MStreamUtils.h>
+#include <maya/MFloatArray.h>
 
 #include <map>
 #include <vector>

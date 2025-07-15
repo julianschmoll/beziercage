@@ -1,87 +1,73 @@
-#ifndef cageDEFORMER_HPP
-#define cageDEFORMER_HPP
-
-
-#include <maya/MPlug.h>
-#include <maya/MPoint.h>
-#include <maya/MPointArray.h>
-#include <maya/MMatrix.h>
-#include <maya/MTypeId.h>
-#include <maya/MPlug.h>
-#include <maya/MDataBlock.h>
-#include <maya/MDataHandle.h>
-#include <maya/MArrayDataHandle.h>
-#include <maya/MFloatArray.h>
-#include <maya/MDoubleArray.h>
-#include <maya/MIntArray.h>
-#include <maya/MGlobal.h>
-#include <maya/MTime.h>
-#include <maya/MThreadPool.h>
-#include <maya/MVector.h>
-#include <maya/MVectorArray.h>
-
-#include <maya/MItGeometry.h>
+#pragma once
 
 #include <maya/MPxDeformerNode.h>
-#include <maya/MFnEnumAttribute.h>
-#include <maya/MFnNumericAttribute.h>
-#include <maya/MFnMatrixAttribute.h>
-#include <maya/MFnMessageAttribute.h>
-#include <maya/MFnTypedAttribute.h>
-#include <maya/MFnCompoundAttribute.h>
-#include <maya/MFnUnitAttribute.h>
-#include <maya/MFnGenericAttribute.h>
-#include <maya/MFnPointArrayData.h>
-#include <maya/MFnDoubleArrayData.h>
-#include <maya/MFnIntArrayData.h>
-#include <maya/MFnMesh.h>
-#include <maya/MFnNurbsSurface.h>
-#include <maya/MFnNurbsCurve.h>
-#include <maya/MFnSubd.h>
-#include <maya/MFnData.h>
+#include <maya/MTypeId.h>
+#include <maya/MObject.h>
+#include <maya/MDataBlock.h>
+#include <maya/MItGeometry.h>
+#include <maya/MMatrix.h>
+#include <maya/MVector.h>
+#include <maya/MPoint.h>
+#include <maya/MPlug.h>
+#include <vector>
 #include <array>
 
-
-class cage : public MPxDeformerNode {
+class bezierCage : public MPxDeformerNode {
 public:
-    cage();
+    bezierCage() = default;
 
-    virtual ~cage();
-
-    virtual MStatus doIt(const MArgList &);
-
-    virtual MStatus undoIt();
-
-    virtual MStatus redoIt();
-
-    virtual bool isUndoable() const;
+    ~bezierCage() override = default;
 
     static void *creator();
 
     static MStatus initialize();
 
-    static MSyntax newSyntax();
+    MStatus deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                   unsigned int geometryIndex) override;
 
-    virtual MStatus deform(MDataBlock &block, MItGeometry &iter, const MMatrix &mat, unsigned int multiIndex);
-
-    const static char *kName;
-
-    static MObject aDriverGeo; //driven geometry for deformer
-    static MObject aBindData;
-    static MObject aSampleComponents; //Vertex IDs
-    static MObject aSampleWeights; // Vertex weights
-    static MObject aBindMatrix;
     static MTypeId id;
-    static MObject aTime;
-    static MObject aStartFrame;
-    static MObject aMinSmearVelocity;
-    static MObject aMaxSmearVelocity;
-    static MObject aWorldMatrix;
-    static MObject aSmearFrames;
-    static MObject aNormalOffset;
-    static MObject aAngleMagnitude;
+    static const char *typeName;
+
+    // Node attributes
+    static MObject aControlMessage;
+    static MObject aPatchMatrices;
+    static MObject aMatrix;
+    static MObject aBindPreMatrix;
+    static MObject aPatchBindPreMatrices;
+    static MObject aThreshDist;
+    static MObject aBindUV;
+    static MObject aBindDistance;
+    static MObject aBindPatchIndex;
+    static MObject aVertexBindPosition;
+    static MObject aVertexBindData;
+    static MObject aGeometryBindData;
+    static MObject aDirty;
 
 private:
-    bool m_initialized;
+
+    static void updateBindPreMatrixPlugs(MDataBlock &dataBlock);
+
+    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preMatrix = false);
+
+    static MVector getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
+                                   const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
+                                   unsigned int geometryIndex);
+
+    bool bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+              unsigned int geometryIndex);
+
+    static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
+
+    static std::array<float, 2> findBindingUV(const std::vector<std::vector<MPoint> > &controlPoints,
+                                              const MPoint &queryPoint);
+
+    static MPoint evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
+
+    static std::vector<MPoint> getPatchPoints(const MArrayDataHandle &matrixArray);
+
+    static MPoint calculateInteriorPoint(const MPoint &point1, const MPoint &point2, const MPoint &point3);
+
+    static MPoint deCasteljau(const std::vector<MPoint> &points, float t);
+
+    static MPoint npEvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
 };
-#endif
