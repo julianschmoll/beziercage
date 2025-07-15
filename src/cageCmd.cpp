@@ -61,7 +61,7 @@ MStatus cageCmd::doIt(const MArgList &args) {
         return MS::kFailure;
     }
 
-    MString command = "deformer -type cage -n \"" + name_ + "\"";
+    MString command = "deformer -type bezierCage -n \"" + name_ + "\"";
 
     for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
         MFnDagNode fnDriven(pathDriven_[i]);
