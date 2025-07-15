@@ -163,31 +163,33 @@ bool bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, cons
 }
 
 void bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
-    MArrayDataHandle patchMatrixArray = dataBlock.inputArrayValue(aPatchMatrices);
-    MArrayDataHandle patchBindPreMatrixArray = dataBlock.inputArrayValue(aPatchBindPreMatrices);
+    MArrayDataHandle patchMatricesHandle = dataBlock.inputArrayValue(aPatchMatrices);
+    MArrayDataHandle patchBindPreMatricesHandle = dataBlock.inputArrayValue(aPatchBindPreMatrices);
+    MArrayDataBuilder patchBindPreMatricesBuilder = patchBindPreMatricesHandle.builder();
+    patchMatricesHandle.jumpToArrayElement(0);
 
-    MArrayDataBuilder patchPreBuilder = patchBindPreMatrixArray.builder();
+    for (unsigned int patchIndex = 0; patchIndex < patchMatricesHandle.elementCount(); ++patchIndex) {
+        MDataHandle patchBindPreMatrixElemHandle = patchBindPreMatricesBuilder.addElement(patchIndex);
+        MArrayDataHandle bindPreMatrixArrayHandle = patchBindPreMatrixElemHandle.child(aBindPreMatrix);
+        MArrayDataBuilder bindPreMatrixArrayBuilder = bindPreMatrixArrayHandle.builder();
+        MDataHandle patchMatrixElemHandle = patchMatricesHandle.inputValue().child(aMatrix);
+        MArrayDataHandle matrixArrayHandle(patchMatrixElemHandle);
+        matrixArrayHandle.jumpToArrayElement(0);
 
-    for (unsigned int patchIdx = 0; patchIdx < patchMatrixArray.elementCount(); ++patchIdx) {
-        MDataHandle elemHandle = patchPreBuilder.addElement(patchIdx);
-        MArrayDataHandle preMatrixHandle = elemHandle.child(aBindPreMatrix);
-        MArrayDataBuilder preMatrixBuilder = preMatrixHandle.builder();
+        for (unsigned int matrixIndex = 0; matrixIndex < matrixArrayHandle.elementCount(); ++matrixIndex) {
+            if (matrixIndex < bindPreMatrixArrayHandle.elementCount()) { continue; }
 
-        patchMatrixArray.jumpToArrayElement(patchIdx);
-        MDataHandle matrixHandle = patchMatrixArray.inputValue().child(aMatrix);
-        MArrayDataHandle matrixArray(matrixHandle);
-
-        for (unsigned int matrixIdx = 0; matrixIdx < matrixArray.elementCount(); ++matrixIdx) {
-            if (matrixIdx < preMatrixHandle.elementCount()) {
-                continue;
-            }
-            matrixArray.jumpToArrayElement(matrixIdx);
-            MMatrix originalMatrix = matrixArray.inputValue().asMatrix();
-            MDataHandle elem = preMatrixBuilder.addElement(matrixIdx);
-            elem.setMMatrix(originalMatrix);
+            MMatrix matrixValue = matrixArrayHandle.inputValue().asMatrix();
+            MDataHandle bindPreMatrixElemHandle = bindPreMatrixArrayBuilder.addElement(matrixIndex);
+            bindPreMatrixElemHandle.setMMatrix(matrixValue);
+            matrixArrayHandle.next();
         }
-        preMatrixHandle.set(preMatrixBuilder);
+        bindPreMatrixArrayHandle.set(bindPreMatrixArrayBuilder);
+        bindPreMatrixArrayHandle.setAllClean();
+
+        patchMatricesHandle.next();
     }
-    patchBindPreMatrixArray.set(patchPreBuilder);
-    patchBindPreMatrixArray.setAllClean();
+
+    patchBindPreMatricesHandle.set(patchBindPreMatricesBuilder);
+    patchBindPreMatricesHandle.setAllClean();
 }
