@@ -195,8 +195,8 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
     }
 
 #if INFO_LOG
-    MGlobal::displayInfo("Binding geometry at index " + MString(std::to_string(geometryIndex).c_str()) +
-                  " to bezier cage with " + MString(std::to_string(controlPoints.size()).c_str()) + " patches.");
+    MGlobal::displayInfo(MString("Binding geometry at index ") + MString(std::to_string(geometryIndex).c_str()) +
+                  MString(" to bezier cage with ") + MString(std::to_string(controlPoints.size()).c_str()) + MString(" patches."));
 #endif
 
     MArrayDataHandle geometryBindDataHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
