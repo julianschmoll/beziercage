@@ -70,7 +70,7 @@ private:
 
     static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
 
-    static std::array<float, 2> findBindingUV(const std::vector<std::vector<MPoint> > &controlPoints,
+    static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints,
                                               const MPoint &queryPoint);
 
     static MPoint evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);

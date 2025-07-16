@@ -7,6 +7,18 @@
 #include <maya/MFnTypedAttribute.h>
 #include <maya/MGlobal.h>
 #include <maya/MArrayDataBuilder.h>
+#include <maya/MArrayDataHandle.h>
+#include <maya/MFnNumericData.h>
+#include <maya/MStatus.h>
+#include <maya/MPlug.h>
+#include <maya/MPoint.h>
+#include <maya/MVector.h>
+#include <maya/MMatrix.h>
+#include <maya/MItGeometry.h>
+#include <maya/MDataBlock.h>
+#include <maya/MObject.h>
+#include <maya/MTypeId.h>
+#include <maya/MPxDeformerNode.h>
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
@@ -145,7 +157,6 @@ void *bezierCage::creator() {
     return new bezierCage();
 }
 
-
 MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                            unsigned int geometryIndex) {
     MStatus status;
@@ -187,32 +198,31 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
     MArrayDataBuilder vertexBindDataBuilder = vertexBindDataHandle.builder();
 
     for (geometryIterator.reset(); !geometryIterator.isDone(); geometryIterator.next()) {
-        unsigned int vertexIndex = geometryIterator.index();
         MPoint currentWorldPosition = geometryIterator.position() * localToWorldMatrix;
-
         float minDistance = std::numeric_limits<float>::max();
-        std::array<float, 2> bestUV = {0.0f, 0.0f};
-        int bestPatchIndex = -1;
 
-        for (size_t patchIndex = 0; patchIndex < controlPoints.size(); ++patchIndex) {
-            auto uv = findBindingUV(controlPoints, currentWorldPosition);
-            MPoint surfacePoint = evaluateBezierPatch(controlPoints, uv[0], uv[1]);
-            const float distance = static_cast<float>(currentWorldPosition.distanceTo(surfacePoint));
+        MDataHandle vertexElementHandle = vertexBindDataBuilder.addElement(geometryIterator.index());
+        MDataHandle uvHandle = vertexElementHandle.child(aBindUV);
+        MDataHandle bindDistHandle = vertexElementHandle.child(aBindDistance);
+        MDataHandle patchIdxHandle = vertexElementHandle.child(aBindPatchIndex);
+        MDataHandle bindPosHandle = vertexElementHandle.child(aVertexBindPosition);
+        bindPosHandle.set3Float(static_cast<float>(currentWorldPosition.x), static_cast<float>(currentWorldPosition.y),
+                                static_cast<float>(currentWorldPosition.z));
+
+        int patchIndex = 0;
+        for (const auto &patchControlPoints: controlPoints) {
+            auto uv = findBindingUV(patchControlPoints, currentWorldPosition);
+            MPoint surfacePoint = evaluateBezierPatch({patchControlPoints}, uv[0], uv[1]);
+            double distance = currentWorldPosition.distanceTo(surfacePoint);
 
             if (distance < minDistance) {
-                minDistance = distance;
-                bestUV = uv;
-                bestPatchIndex = static_cast<int>(patchIndex);
+                minDistance = static_cast<float>(distance);
+                bindDistHandle.setFloat(minDistance);
+                uvHandle.set2Float(uv[0], uv[1]);
+                patchIdxHandle.setInt(patchIndex);
             }
+            patchIndex++;
         }
-
-        MDataHandle bindDataElement = vertexBindDataBuilder.addElement(vertexIndex);
-        bindDataElement.child(aBindUV).set2Float(bestUV[0], bestUV[1]);
-        bindDataElement.child(aBindDistance).setFloat(minDistance);
-        bindDataElement.child(aBindPatchIndex).setInt(bestPatchIndex);
-        bindDataElement.child(aVertexBindPosition).set3Float(static_cast<float>(currentWorldPosition.x),
-                                                             static_cast<float>(currentWorldPosition.y),
-                                                             static_cast<float>(currentWorldPosition.z));
     }
 
     vertexBindDataHandle.set(vertexBindDataBuilder);
@@ -267,4 +277,20 @@ MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
     patchBindPreMatricesHandle.set(patchBindPreMatricesBuilder);
     patchBindPreMatricesHandle.setAllClean();
     return status;
+}
+
+std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataBlock, bool preMatrix) {
+    // TODO: Implement this function
+    return {};
+}
+
+std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
+                                               const MPoint &queryPoint) {
+    // TODO: Implement this function
+    return {0.0f, 0.0f};
+}
+
+MPoint bezierCage::evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v) {
+    // TODO: Implement this function
+    return MPoint();
 }
