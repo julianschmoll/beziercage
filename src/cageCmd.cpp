@@ -2,7 +2,7 @@
 #include "cageDeformer.hpp"
 #include "common.hpp"
 
-const char *cageCmd::kName = "cage";
+const char *cageCmd::kName = "deformCage";
 
 const char *cageCmd::kNameFlagShort = "-n";
 const char *cageCmd::kNameFlagLong = "-name";
