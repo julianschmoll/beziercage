@@ -1,4 +1,5 @@
 #include "cageDeformer.hpp"
+#include "common.hpp"
 
 #include <maya/MFnCompoundAttribute.h>
 #include <maya/MFnMatrixAttribute.h>
@@ -179,14 +180,24 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
 
     status = dirtyArrayHandle.jumpToElement(geometryIndex);
     if (status == MS::kSuccess && !dirtyArrayHandle.inputValue().asBool()) {
+#if DEBUG_LOG
+        MGlobal::displayInfo("Geometry at index " + MString(std::to_string(geometryIndex).c_str()) + "is already bound.");
+#endif
         return status;
     }
 
     auto controlPoints = getControlPoints(dataBlock);
     if (controlPoints.empty()) {
-        MGlobal::displayError("No NURBS surface connected to the deformer.");
+#if ERROR_LOG
+        MGlobal::displayError("No valid NURBS surface connected to the deformer.");
+#endif
         return MS::kFailure;
     }
+
+#if INFO_LOG
+    MGlobal::displayInfo("Binding geometry at index " + MString(std::to_string(geometryIndex).c_str()) +
+                  " to bezier cage with " + MString(std::to_string(controlPoints.size()).c_str()) + " patches.");
+#endif
 
     MArrayDataHandle geometryBindDataHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);

@@ -66,7 +66,7 @@ private:
      * @return MStatus indicating success or failure.
      */
     static MStatus bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                 unsigned int geometryIndex);
+                        unsigned int geometryIndex);
 
     static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
 

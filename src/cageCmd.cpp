@@ -1,4 +1,6 @@
 #include "cageCmd.hpp"
+#include "cageDeformer.hpp"
+#include "common.hpp"
 
 const char *cageCmd::kName = "cage";
 
@@ -61,8 +63,8 @@ MStatus cageCmd::doIt(const MArgList &args) {
         return MS::kFailure;
     }
 
-MString deformerType = "bezierCage";
-MString command = "deformer -type " + deformerType + " -n \"" + name_ + "\"";
+    MString deformerType = MString(bezierCage::typeName);
+    MString command = "deformer -type " + deformerType + " -n \"" + name_ + "\"";
 
     for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
         MFnDagNode fnDriven(pathDriven_[i]);
