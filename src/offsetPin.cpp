@@ -155,7 +155,7 @@ MStatus offsetPin::initialize() {
 
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
 #if DEBUG_LOG
-MGlobal::displayInfo("Recomputation was requested for plug: " + plug.name());
+MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
 #endif
     if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
     buildGeometryLookup(data);
