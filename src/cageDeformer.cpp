@@ -162,34 +162,42 @@ bool bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, cons
     return true;
 }
 
-void bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
-    MArrayDataHandle patchMatricesHandle = dataBlock.inputArrayValue(aPatchMatrices);
-    MArrayDataHandle patchBindPreMatricesHandle = dataBlock.inputArrayValue(aPatchBindPreMatrices);
-    MArrayDataBuilder patchBindPreMatricesBuilder = patchBindPreMatricesHandle.builder();
-    patchMatricesHandle.jumpToArrayElement(0);
+MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
+    MStatus status;
+    MArrayDataHandle patchMatricesHandle = dataBlock.inputArrayValue(aPatchMatrices, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataHandle patchBindPreMatricesHandle = dataBlock.inputArrayValue(aPatchBindPreMatrices, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataBuilder patchBindPreMatricesBuilder = patchBindPreMatricesHandle.builder(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    for (unsigned int patchIndex = 0; patchIndex < patchMatricesHandle.elementCount(); ++patchIndex) {
-        MDataHandle patchBindPreMatrixElemHandle = patchBindPreMatricesBuilder.addElement(patchIndex);
+    status = patchMatricesHandle.jumpToArrayElement(0);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    do {
+        MDataHandle patchMatrixElemHandle = patchMatricesHandle.inputValue(&status).child(aMatrix);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MArrayDataHandle matrixArrayHandle(patchMatrixElemHandle);
+
+        MDataHandle patchBindPreMatrixElemHandle = patchBindPreMatricesBuilder.addElement(
+            patchMatricesHandle.elementIndex());
         MArrayDataHandle bindPreMatrixArrayHandle = patchBindPreMatrixElemHandle.child(aBindPreMatrix);
         MArrayDataBuilder bindPreMatrixArrayBuilder = bindPreMatrixArrayHandle.builder();
-        MDataHandle patchMatrixElemHandle = patchMatricesHandle.inputValue().child(aMatrix);
-        MArrayDataHandle matrixArrayHandle(patchMatrixElemHandle);
-        matrixArrayHandle.jumpToArrayElement(0);
 
-        for (unsigned int matrixIndex = 0; matrixIndex < matrixArrayHandle.elementCount(); ++matrixIndex) {
-            if (matrixIndex < bindPreMatrixArrayHandle.elementCount()) { continue; }
-
-            MMatrix matrixValue = matrixArrayHandle.inputValue().asMatrix();
-            MDataHandle bindPreMatrixElemHandle = bindPreMatrixArrayBuilder.addElement(matrixIndex);
-            bindPreMatrixElemHandle.setMMatrix(matrixValue);
-            matrixArrayHandle.next();
+        unsigned int existingMatrixCount = bindPreMatrixArrayHandle.elementCount();
+        if (matrixArrayHandle.elementCount() > existingMatrixCount) {
+            matrixArrayHandle.jumpToArrayElement(existingMatrixCount);
+            do {
+                unsigned int matrixIndex = matrixArrayHandle.elementIndex();
+                MMatrix matrixValue = matrixArrayHandle.inputValue().asMatrix();
+                MDataHandle bindPreMatrixElemHandle = bindPreMatrixArrayBuilder.addElement(matrixIndex);
+                bindPreMatrixElemHandle.setMMatrix(matrixValue);
+            } while (matrixArrayHandle.next() == MS::kSuccess);
+            bindPreMatrixArrayHandle.set(bindPreMatrixArrayBuilder);
         }
-        bindPreMatrixArrayHandle.set(bindPreMatrixArrayBuilder);
         bindPreMatrixArrayHandle.setAllClean();
-
-        patchMatricesHandle.next();
-    }
+    } while (patchMatricesHandle.next() == MS::kSuccess);
 
     patchBindPreMatricesHandle.set(patchBindPreMatricesBuilder);
     patchBindPreMatricesHandle.setAllClean();
+    return status;
 }

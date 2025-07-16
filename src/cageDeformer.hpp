@@ -45,7 +45,7 @@ public:
 
 private:
 
-    static void updateBindPreMatrixPlugs(MDataBlock &dataBlock);
+    static MStatus updateBindPreMatrixPlugs(MDataBlock &dataBlock);
 
     static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preMatrix = false);
 
