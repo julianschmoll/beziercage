@@ -10,11 +10,12 @@ cd %builddir%
 
 echo Building cage for Maya%1
 
-set "CMAKE_FLAGS="
-if /I "%2"=="debug" (
-    set "CMAKE_FLAGS=-DCMAKE_CXX_FLAGS=/DDEBUG /EHsc"
-    echo Building in debug mode
-)
+set "LOG_LEVEL_VALUE=1"
+if /I "%2"=="INFO" set "LOG_LEVEL_VALUE=2"
+if /I "%2"=="DEBUG" set "LOG_LEVEL_VALUE=3"
+
+set "CMAKE_FLAGS=-DLOG_LEVEL=%LOG_LEVEL_VALUE%"
+echo Setting LOG_LEVEL to %LOG_LEVEL_VALUE%
 
 cmake -A x64 -T v143 -DMAYA_VERSION=%1 %CMAKE_FLAGS% %root_folder%
 cmake --build . --target install --config Release

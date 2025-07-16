@@ -45,6 +45,9 @@ void *offsetPin::creator() {
 }
 
 MStatus offsetPin::initialize() {
+# if INFO_LOG
+ MGlobal::displayInfo("Initializing offsetPin node");
+# endif
  MFnMatrixAttribute mAttr;
  MFnNumericAttribute nAttr;
  MFnTypedAttribute tAttr;
@@ -151,6 +154,9 @@ MStatus offsetPin::initialize() {
 }
 
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
+#if DEBUG_LOG
+MGlobal::displayInfo("Recomputation was requested for plug: " + plug.name());
+#endif
  if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
  buildGeometryLookup(data);
  bind(data);
@@ -160,6 +166,9 @@ MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
 }
 
 MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
+#if INFO_LOG
+ MGlobal::displayInfo("Building geometry lookup for offsetPin node");
+#endif
  MArrayDataHandle originalGeometryArray = data.inputArrayValue(aOriginalGeometry);
  MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
 
@@ -281,7 +290,9 @@ MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dag
 }
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
- DEBUG_MSG("Binding Geom Index: " << index);
+#if DEBUG_LOG
+ MGlobal::displayInfo("Calculating binding for index: " + MString(std::to_string(index).c_str()));
+#endif
  MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
  MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
  MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
@@ -382,13 +393,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
  bindElem.child(aBindOffsetVector).set3Double(offsetVector.x, offsetVector.y, offsetVector.z);
 
  bindDataArray.set(bindDataBuilder);
-
- DEBUG_MSG(
-  "BestVertexIndices: " << bestVertexIndices[0] << ", " << bestVertexIndices[1] << ", " << bestVertexIndices[2]);
- DEBUG_MSG(
-  "BestClosestPoint: (" << bestClosestPoint.x << ", " << bestClosestPoint.y << ", " << bestClosestPoint.z << ")");
- DEBUG_MSG("BestBaryCoords: " << bestBaryCoords[0] << ", " << bestBaryCoords[1] << ", " << bestBaryCoords[2]);
-
  return MS::kSuccess;
 }
 

@@ -23,10 +23,23 @@
 #include <vector>
 #include <set>
 
-#ifdef DEBUG
-    #define DEBUG_MSG(x) MStreamUtils::stdOutStream() << x << "\n";
-#else
-#define DEBUG_MSG(x)
+/* Convenience macros for logging.
+ * Verbosity can be defined by setting LOG_LEVEL during compilation.
+ *
+ * 1: Only errors are logged.
+ * 2: Errors and info messages are logged.
+ * 3: Errors, info, and debug messages are logged.
+*/
+#if LOG_LEVEL > 0
+#define ERROR_LOG 1
+#endif
+
+#if LOG_LEVEL > 1
+#define INFO_LOG 1
+#endif
+
+#if LOG_LEVEL > 2
+#define DEBUG_LOG 1
 #endif
 
 /**

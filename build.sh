@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Usage:
-#   ./build.sh <MayaVersion> [debug]
+#   ./build.sh <MayaVersion> [LOG_LEVEL]
+#   LOG_LEVEL can be ERROR, INFO, DEBUG (case-insensitive)
 #
 
 root_folder="$(pwd)"
@@ -22,11 +23,16 @@ cd "$builddir"
 
 echo "Building cage for Maya $1 on $os"
 
-CMAKE_FLAGS=""
-if [ "$2" = "debug" ]; then
-  CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug"
-  echo "Building in debug mode"
+LOG_LEVEL_VALUE=1 # Default to ERROR
+if [ -n "$2" ]; then
+  case "${2^^}" in
+    INFO)  LOG_LEVEL_VALUE=2 ;;
+    DEBUG) LOG_LEVEL_VALUE=3 ;;
+  esac
 fi
+
+CMAKE_FLAGS="-DLOG_LEVEL=$LOG_LEVEL_VALUE"
+echo "Setting LOG_LEVEL to $LOG_LEVEL_VALUE"
 
 cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
 cmake --build . --target install --config Release
