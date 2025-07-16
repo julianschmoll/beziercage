@@ -291,8 +291,75 @@ MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
 }
 
 std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataBlock, bool preMatrix) {
-    // TODO: Implement this function
-    return {};
+    MStatus status;
+    std::vector<std::vector<MPoint> > patches;
+
+    MObject matrixArrayAttr = preMatrix ? aPatchBindPreMatrices : aPatchMatrices;
+    MObject matrixAttr = preMatrix ? aBindPreMatrix : aMatrix;
+
+    MArrayDataHandle patchArrayHandle = dataBlock.inputArrayValue(matrixArrayAttr, &status);
+    CHECK_MSTATUS_AND_RETURN(status, patches);
+
+    unsigned int patchCount = patchArrayHandle.elementCount();
+    patches.reserve(patchCount);
+
+    status = patchArrayHandle.jumpToArrayElement(0);
+    CHECK_MSTATUS_AND_RETURN(status, patches);
+
+    do {
+        MDataHandle patchElementHandle = patchArrayHandle.inputValue(&status);
+        if (!status) continue;
+
+        MDataHandle matrixArrayDataHandle = patchElementHandle.child(matrixAttr);
+        MArrayDataHandle matrixArrayHandle(matrixArrayDataHandle);
+
+        std::vector<MPoint> patchPoints = getPatchPoints(matrixArrayHandle);
+        if (!patchPoints.empty()) {
+            patches.push_back(patchPoints);
+        }
+    } while (patchArrayHandle.next() == MS::kSuccess);
+
+    return patches;
+}
+
+std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
+    MStatus status;
+    if (matrixArray.elementCount() != 12) {
+#if ERROR_LOG
+        MGlobal::displayError("Patch must consist of 12 matrices, found " +
+            MString(std::to_string(matrixArray.elementCount()).c_str()));
+#endif
+        return {};
+    }
+    std::vector<MPoint> inputPoints;
+    inputPoints.reserve(12);
+    status = matrixArray.jumpToArrayElement(0);
+    CHECK_MSTATUS_AND_RETURN(status, inputPoints);
+
+    do {
+        MMatrix matrix = matrixArray.inputValue(&status).asMatrix();
+        CHECK_MSTATUS_AND_RETURN(status, inputPoints);
+        inputPoints.emplace_back(matrix(3, 0), matrix(3, 1), matrix(3, 2));
+    } while (matrixArray.next() == MS::kSuccess);
+
+    if (inputPoints.size() != 12) {
+#if DEBUG_LOG
+        MGlobal::displayInfo("Failed to read matrixArray");
+#endif
+        return {};
+    }
+
+    std::vector<MPoint> controlPoints;
+    controlPoints.reserve(16);
+    controlPoints.insert(controlPoints.end(), inputPoints.begin(), inputPoints.begin() + 5);
+    controlPoints.push_back(inputPoints[4] + (inputPoints[1] - inputPoints[0]));
+    controlPoints.push_back(inputPoints[5] + (inputPoints[2] - inputPoints[3]));
+    controlPoints.insert(controlPoints.end(), inputPoints.begin() + 5, inputPoints.begin() + 7);
+    controlPoints.push_back(inputPoints[6] + (inputPoints[9] - inputPoints[8]));
+    controlPoints.push_back(inputPoints[7] + (inputPoints[10] - inputPoints[11]));
+    controlPoints.insert(controlPoints.end(), inputPoints.begin() + 7, inputPoints.end());
+
+    return controlPoints;
 }
 
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,

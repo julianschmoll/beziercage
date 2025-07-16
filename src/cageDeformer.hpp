@@ -75,9 +75,7 @@ private:
 
     static MPoint evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
 
-    static std::vector<MPoint> getPatchPoints(const MArrayDataHandle &matrixArray);
-
-    static MPoint calculateInteriorPoint(const MPoint &point1, const MPoint &point2, const MPoint &point3);
+    static std::vector<MPoint> getPatchPoints(MArrayDataHandle &matrixArray);
 
     static MPoint deCasteljau(const std::vector<MPoint> &points, float t);
 
