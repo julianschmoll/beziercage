@@ -181,7 +181,7 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
     status = dirtyArrayHandle.jumpToElement(geometryIndex);
     if (status == MS::kSuccess && !dirtyArrayHandle.inputValue().asBool()) {
 #if DEBUG_LOG
-        MGlobal::displayInfo("Geometry at index " + MString(std::to_string(geometryIndex).c_str()) + "is already bound.");
+        MGlobal::displayInfo(MString("Geometry at index ") + MString(std::to_string(geometryIndex).c_str()) + " is already bound.");
 #endif
         return status;
     }
