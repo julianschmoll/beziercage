@@ -45,9 +45,9 @@ void *offsetPin::creator() {
 }
 
 MStatus offsetPin::initialize() {
-# if INFO_LOG
+#if INFO_LOG
  MGlobal::displayInfo("Initializing offsetPin node");
-# endif
+#endif
     MFnMatrixAttribute mAttr;
     MFnNumericAttribute nAttr;
     MFnTypedAttribute tAttr;
