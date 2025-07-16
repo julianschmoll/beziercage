@@ -7,6 +7,8 @@
 #include <maya/MFnTypedAttribute.h>
 #include <maya/MGlobal.h>
 #include <maya/MArrayDataBuilder.h>
+
+
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId bezierCage::id(0x0013f8c0);
 
@@ -136,7 +138,7 @@ MStatus bezierCage::initialize() {
                     MString(typeName));
     MGlobal::executeCommand(paintCmd);
 
-    return MS::kSuccess;
+    return status;
 }
 
 void *bezierCage::creator() {
@@ -146,20 +148,85 @@ void *bezierCage::creator() {
 
 MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                            unsigned int geometryIndex) {
-    updateBindPreMatrixPlugs(dataBlock);
-    float fEnvelope = dataBlock.inputValue(envelope).asFloat();
-    if (fEnvelope == 0.0f) { return MS::kSuccess; }
+    MStatus status;
+    float fEnvelope = dataBlock.inputValue(envelope, &status).asFloat();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    if (fEnvelope == 0.0f) { return status; }
+    status = updateBindPreMatrixPlugs(dataBlock);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    return status;
+}
 
-    if (bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex) == false) {
+MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                         unsigned int geometryIndex) {
+    MStatus status;
+
+    MArrayDataHandle dirtyArrayHandle = dataBlock.inputArrayValue(aDirty, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    status = dirtyArrayHandle.jumpToElement(geometryIndex);
+    if (status == MS::kSuccess && !dirtyArrayHandle.inputValue().asBool()) {
+        return status;
+    }
+
+    auto controlPoints = getControlPoints(dataBlock);
+    if (controlPoints.empty()) {
+        MGlobal::displayError("No NURBS surface connected to the deformer.");
         return MS::kFailure;
     }
 
-    return MS::kSuccess;
-}
+    MArrayDataHandle geometryBindDataHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataBuilder geometryBindDataBuilder = geometryBindDataHandle.builder(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-bool bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                      unsigned int geometryIndex) {
-    return true;
+    MDataHandle geometryElementHandle = geometryBindDataBuilder.addElement(geometryIndex);
+    MArrayDataHandle vertexBindDataHandle = geometryElementHandle.child(aVertexBindData);
+    MArrayDataBuilder vertexBindDataBuilder = vertexBindDataHandle.builder();
+
+    for (geometryIterator.reset(); !geometryIterator.isDone(); geometryIterator.next()) {
+        unsigned int vertexIndex = geometryIterator.index();
+        MPoint currentWorldPosition = geometryIterator.position() * localToWorldMatrix;
+
+        float minDistance = std::numeric_limits<float>::max();
+        std::array<float, 2> bestUV = {0.0f, 0.0f};
+        int bestPatchIndex = -1;
+
+        for (size_t patchIndex = 0; patchIndex < controlPoints.size(); ++patchIndex) {
+            auto uv = findBindingUV(controlPoints, currentWorldPosition);
+            MPoint surfacePoint = evaluateBezierPatch(controlPoints, uv[0], uv[1]);
+            const float distance = static_cast<float>(currentWorldPosition.distanceTo(surfacePoint));
+
+            if (distance < minDistance) {
+                minDistance = distance;
+                bestUV = uv;
+                bestPatchIndex = static_cast<int>(patchIndex);
+            }
+        }
+
+        MDataHandle bindDataElement = vertexBindDataBuilder.addElement(vertexIndex);
+        bindDataElement.child(aBindUV).set2Float(bestUV[0], bestUV[1]);
+        bindDataElement.child(aBindDistance).setFloat(minDistance);
+        bindDataElement.child(aBindPatchIndex).setInt(bestPatchIndex);
+        bindDataElement.child(aVertexBindPosition).set3Float(static_cast<float>(currentWorldPosition.x),
+                                                             static_cast<float>(currentWorldPosition.y),
+                                                             static_cast<float>(currentWorldPosition.z));
+    }
+
+    vertexBindDataHandle.set(vertexBindDataBuilder);
+    vertexBindDataHandle.setAllClean();
+    geometryBindDataHandle.set(geometryBindDataBuilder);
+    geometryBindDataHandle.setAllClean();
+
+    MArrayDataBuilder dirtyBuilder = dirtyArrayHandle.builder(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    dirtyBuilder.addElement(geometryIndex).setBool(false);
+    dirtyArrayHandle.set(dirtyBuilder);
+    dirtyArrayHandle.setAllClean();
+
+    return MS::kSuccess;
 }
 
 MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
