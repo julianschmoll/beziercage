@@ -51,7 +51,7 @@ private:
      */
     static MStatus updateBindPreMatrixPlugs(MDataBlock &dataBlock);
 
-    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preMatrix = false);
+    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preDeform = false);
 
     static MVector getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
                                    const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
@@ -79,5 +79,5 @@ private:
 
     static MPoint deCasteljau(const std::vector<MPoint> &points, float t);
 
-    static MPoint npEvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
+    static MPoint EvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
 };
