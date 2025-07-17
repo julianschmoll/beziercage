@@ -290,7 +290,7 @@ MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
     return status;
 }
 
-std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataBlock, bool preMatrix) {
+std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataBlock, const bool preMatrix) {
     MStatus status;
     std::vector<std::vector<MPoint> > patches;
 
@@ -324,6 +324,21 @@ std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataB
 
 std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     MStatus status;
+    /* The input structure for the control points is as follows:
+     *
+     * 8---9---10--11
+     * |   |   |   |
+     * 6---X---X---7
+     * |   |   |   |
+     * 4---X---X---5
+     * |   |   |   |
+     * 0---1---2---3
+     *
+     * The points marked with 'X' are computed from the other points, so they are not
+     * specified in the input.
+     *
+     * That's why we expect 12 matrices in the array.
+     */
     if (matrixArray.elementCount() != 12) {
 #if ERROR_LOG
         MGlobal::displayError("Patch must consist of 12 matrices, found " +
@@ -349,14 +364,55 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
         return {};
     }
 
+    /* Here we compute the interior points to get the full set of control points.
+     *
+     * X---X---X---X
+     * |   |   |   |
+     * X---2---3---X
+     * |   |   |   |
+     * X---0---1---X
+     * |   |   |   |
+     * X---X---X---X
+     *
+     * The position of 0 would be the vector from 0 to 1 from point 4.
+     *
+     * in the final control points array, the points are ordered as follows:
+     *
+     * 12--13--14--15
+     * |   |   |   |
+     * 8---9--10---11
+     * |   |   |   |
+     * 4---5---6---7
+     * |   |   |   |
+     * 0---1---2---3
+     *
+     * there is no differentiation between defined control points and computed
+     * interior points anymore as this is not relevant for the evaluation of the cage.
+     *
+     */
+
     std::vector<MPoint> controlPoints;
     controlPoints.reserve(16);
+
+    // Inserts the first 5 points (0-4) from the input (0-4)
     controlPoints.insert(controlPoints.end(), inputPoints.begin(), inputPoints.begin() + 5);
+
+    // Computes and inserts interior point 5
     controlPoints.push_back(inputPoints[4] + (inputPoints[1] - inputPoints[0]));
+
+    // Computes and inserts interior point 6
     controlPoints.push_back(inputPoints[5] + (inputPoints[2] - inputPoints[3]));
+
+    // Inserts the next 2 points (7, 8) from the input (5, 6)
     controlPoints.insert(controlPoints.end(), inputPoints.begin() + 5, inputPoints.begin() + 7);
+
+    // Computes and inserts interior point 9
     controlPoints.push_back(inputPoints[6] + (inputPoints[9] - inputPoints[8]));
+
+    // Computes and inserts interior point 10
     controlPoints.push_back(inputPoints[7] + (inputPoints[10] - inputPoints[11]));
+
+    // Inserts the last 5 points (11-15) from the input (7-11)
     controlPoints.insert(controlPoints.end(), inputPoints.begin() + 7, inputPoints.end());
 
     return controlPoints;
