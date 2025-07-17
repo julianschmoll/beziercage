@@ -73,11 +73,5 @@ private:
     static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints,
                                               const MPoint &queryPoint);
 
-    static MPoint evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
-
     static std::vector<MPoint> getPatchPoints(MArrayDataHandle &matrixArray);
-
-    static MPoint deCasteljau(const std::vector<MPoint> &points, float t);
-
-    static MPoint EvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
 };

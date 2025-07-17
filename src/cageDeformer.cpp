@@ -21,9 +21,6 @@
 #include <maya/MTypeId.h>
 #include <maya/MPxDeformerNode.h>
 
-#include <dlib/optimization.h>
-#include <Eigen/Dense>
-
 
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId bezierCage::id(0x0013f8c0);
@@ -226,7 +223,7 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
         int patchIndex = 0;
         for (const auto &patchControlPoints: controlPoints) {
             auto uv = findBindingUV(patchControlPoints, currentWorldPosition);
-            MPoint surfacePoint = evaluateBezierPatch({patchControlPoints}, uv[0], uv[1]);
+            MPoint surfacePoint = evaluateBezierPatch(patchControlPoints, uv[0], uv[1]);
 
             if (double distance = currentWorldPosition.distanceTo(surfacePoint); distance < minDistance) {
                 minDistance = static_cast<float>(distance);
@@ -420,75 +417,8 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-struct DistanceToSurface {
-    DistanceToSurface(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint)
-            : controlPoints(controlPoints), queryPoint(queryPoint) {}
-
-    double operator()(const dlib::matrix<double, 2, 1> &uv) const {
-        MPoint surfacePoint = bezierCage::evaluateBezierPatch(controlPoints, static_cast<float>(uv(0)), static_cast<float>(uv(1)));
-        MVector diff = surfacePoint - queryPoint;
-        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-    }
-
-private:
-    const std::vector<MPoint> &controlPoints;
-    const MPoint &queryPoint;
-};
-
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
                                                const MPoint &queryPoint) {
-    if (controlPoints.size() != 16) {
-        return {0.0f, 0.0f};
-    }
-
-    try {
-        dlib::matrix<double, 2, 1> uv;
-        uv(0) = 0.5;
-        uv(1) = 0.5;
-
-        dlib::find_min_box_constrained(
-                dlib::lbfgs_search_strategy(10),
-                dlib::objective_delta_stop_strategy(1e-7),
-                DistanceToSurface(controlPoints, queryPoint),
-                dlib::derivative(DistanceToSurface(controlPoints, queryPoint)),
-                uv,
-                {0.0, 0.0},
-                {1.0, 1.0}
-        );
-
-        return {static_cast<float>(uv(0)), static_cast<float>(uv(1))};
-    } catch (const std::exception &e) {
-#if DEBUG_LOG
-        MGlobal::displayError(MString("dlib optimization failed: ") + e.what());
-#endif
-        return {0.5f, 0.5f};
-    }
-}
-
-MPoint bezierCage::deCasteljau(const std::vector<MPoint>& points, float t) {
-    if (points.empty()) {
-        return {};
-    }
-    auto p = points;
-    for (size_t i = 1; i < p.size(); ++i) {
-        for (size_t j = 0; j < p.size() - i; ++j) {
-            p[j] = p[j] * (1.0f - t) + p[j + 1] * t;
-        }
-    }
-    return p[0];
-}
-
-MPoint bezierCage::EvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v) {
-    if (controlPoints.size() != 16) {
-        return {};
-    }
-
-    std::vector<MPoint> vPoints;
-    vPoints.reserve(4);
-    for (int i = 0; i < 4; ++i) {
-        std::vector<MPoint> row(controlPoints.begin() + i * 4, controlPoints.begin() + i * 4 + 4);
-        vPoints.push_back(deCasteljau(row, v));
-    }
-
-    return deCasteljau(vPoints, u);
+    // we just return 0.5, 0.5 for now, as this is the center of the patch
+    return {0.5f, 0.5f};
 }

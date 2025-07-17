@@ -126,3 +126,31 @@ void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MM
     m[3][2] = 0.0;
     m[3][3] = 1.0;
 }
+
+MPoint deCasteljau(const std::vector<MPoint> &points, float t) {
+    if (points.empty()) {
+        return {};
+    }
+    auto p = points;
+    for (size_t i = 1; i < p.size(); ++i) {
+        for (size_t j = 0; j < p.size() - i; ++j) {
+            p[j] = p[j] * (1.0f - t) + p[j + 1] * t;
+        }
+    }
+    return p[0];
+}
+
+MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v) {
+    if (controlPoints.size() != 16) {
+        return {};
+    }
+
+    std::vector<MPoint> vPoints;
+    vPoints.reserve(4);
+    for (int i = 0; i < 4; ++i) {
+        std::vector<MPoint> row(controlPoints.begin() + i * 4, controlPoints.begin() + i * 4 + 4);
+        vPoints.push_back(deCasteljau(row, v));
+    }
+
+    return deCasteljau(vPoints, u);
+}

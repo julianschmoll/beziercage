@@ -91,3 +91,6 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
   @param[out] m The computed rotation matrix.
 */
 void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);
+
+MPoint deCasteljau(const std::vector<MPoint> &points, float t);
+MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v);
