@@ -168,7 +168,71 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     CHECK_MSTATUS_AND_RETURN_IT(status);
     status = bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex);
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    auto controlPoints = getControlPoints(dataBlock);
+    auto preControlPoints = getControlPoints(dataBlock, true);
+
+    for (geometryIterator.reset(); !geometryIterator.isDone(); geometryIterator.next()) {
+        MPoint currentP = geometryIterator.position();
+
+        MVector deformVec = getDeformVector(
+            dataBlock,
+            controlPoints,
+            preControlPoints,
+            geometryIterator.index(),
+            geometryIndex
+        );
+        float weight = weightValue(dataBlock, geometryIndex, geometryIterator.index());
+        MVector delta = deformVec * weight * fEnvelope;
+
+        geometryIterator.setPosition(currentP + delta);
+    }
+
     return status;
+}
+
+MVector bezierCage::getDeformVector(
+    MDataBlock &dataBlock,
+    const std::vector<std::vector<MPoint> > &controlPoints,
+    const std::vector<std::vector<MPoint> > &preControlPoints,
+    unsigned int vertexIndex,
+    unsigned int geometryIndex) {
+    MStatus status;
+    MArrayDataHandle geomBindHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
+    if (status != MS::kSuccess || geomBindHandle.elementCount() <= geometryIndex)
+        return MVector();
+    status = geomBindHandle.jumpToElement(geometryIndex);
+    if (status != MS::kSuccess)
+        return MVector();
+    MDataHandle geomElem = geomBindHandle.inputValue(&status);
+    if (status != MS::kSuccess)
+        return MVector();
+
+    MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
+    if (vertBindHandle.elementCount() <= vertexIndex)
+        return MVector();
+    status = vertBindHandle.jumpToElement(vertexIndex);
+    if (status != MS::kSuccess)
+        return MVector();
+    MDataHandle bindData = vertBindHandle.inputValue(&status);
+    if (status != MS::kSuccess)
+        return MVector();
+
+    float bindDist = bindData.child(aBindDistance).asFloat();
+    float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
+    if (bindDist > thresh)
+        return MVector();
+
+    float u, v;
+    const double *uvPtr = bindData.child(aBindUV).asDouble2();
+    u = static_cast<float>(uvPtr[0]);
+    v = static_cast<float>(uvPtr[1]);
+    int patchIdx = bindData.child(aBindPatchIndex).asInt();
+
+    MPoint p0 = evaluateBezierPatch(preControlPoints[patchIdx], u, v);
+    MPoint p1 = evaluateBezierPatch(controlPoints[patchIdx], u, v);
+
+    return p1 - p0;
 }
 
 MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
