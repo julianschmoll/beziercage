@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include <cmath>
+#include <maya/MPoint.h>
 
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||
@@ -132,7 +133,7 @@ MPoint deCasteljau(const std::vector<MPoint> &points, float t) {
 #if ERROR_LOG
         MGlobal::displayError("No points provided for de Casteljau's algorithm.");
 #endif
-        return {};
+        return MPoint();
     }
     auto p = points;
     for (size_t i = 1; i < p.size(); ++i) {
@@ -151,6 +152,7 @@ MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, fl
             MString(std::to_string(controlPoints.size()).c_str())
         );
 #endif
+        return MPoint();
     }
 
     std::vector<MPoint> vPoints;

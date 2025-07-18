@@ -412,8 +412,8 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     } while (matrixArray.next() == MS::kSuccess);
 
     if (inputPoints.size() != 12) {
-#if DEBUG_LOG
-        MGlobal::displayInfo("Failed to read matrixArray");
+#if ERROR_LOG
+        MGlobal::displayError("Failed to read matrixArray");
 #endif
         return {};
     }
