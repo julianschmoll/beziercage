@@ -161,7 +161,7 @@ void *bezierCage::creator() {
 MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                            unsigned int geometryIndex) {
     MStatus status;
-    float fEnvelope = dataBlock.inputValue(envelope, &status).asFloat();
+    const float fEnvelope = dataBlock.inputValue(envelope, &status).asFloat();
     CHECK_MSTATUS_AND_RETURN_IT(status);
     if (fEnvelope == 0.0f) { return status; }
     status = updateBindPreMatrixPlugs(dataBlock);
@@ -169,70 +169,64 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     status = bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    auto controlPoints = getControlPoints(dataBlock);
-    auto preControlPoints = getControlPoints(dataBlock, true);
+    const auto controlPoints = getControlPoints(dataBlock);
+    const auto preControlPoints = getControlPoints(dataBlock, true);
+
+    MPoint currentPoint;
+    MVector deformVector;
 
     for (geometryIterator.reset(); !geometryIterator.isDone(); geometryIterator.next()) {
-        MPoint currentP = geometryIterator.position();
-
-        MVector deformVec = getDeformVector(
+        currentPoint = geometryIterator.position();
+        deformVector = getDeformVector(
             dataBlock,
             controlPoints,
             preControlPoints,
             geometryIterator.index(),
             geometryIndex
         );
-        float weight = weightValue(dataBlock, geometryIndex, geometryIterator.index());
-        MVector delta = deformVec * weight * fEnvelope;
-
-        geometryIterator.setPosition(currentP + delta);
+        const float weight = weightValue(dataBlock, geometryIndex, geometryIterator.index());
+        geometryIterator.setPosition(currentPoint + (deformVector * weight * fEnvelope));
     }
-
     return status;
 }
 
-MVector bezierCage::getDeformVector(
-    MDataBlock &dataBlock,
-    const std::vector<std::vector<MPoint> > &controlPoints,
-    const std::vector<std::vector<MPoint> > &preControlPoints,
-    unsigned int vertexIndex,
-    unsigned int geometryIndex) {
+MVector bezierCage::getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
+                                    const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
+                                    unsigned int geometryIndex) {
     MStatus status;
     MArrayDataHandle geomBindHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
-    if (status != MS::kSuccess || geomBindHandle.elementCount() <= geometryIndex)
-        return MVector();
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
     status = geomBindHandle.jumpToElement(geometryIndex);
-    if (status != MS::kSuccess)
-        return MVector();
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
     MDataHandle geomElem = geomBindHandle.inputValue(&status);
-    if (status != MS::kSuccess)
-        return MVector();
-
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
     MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
-    if (vertBindHandle.elementCount() <= vertexIndex)
-        return MVector();
     status = vertBindHandle.jumpToElement(vertexIndex);
-    if (status != MS::kSuccess)
-        return MVector();
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
     MDataHandle bindData = vertBindHandle.inputValue(&status);
-    if (status != MS::kSuccess)
-        return MVector();
-
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
     float bindDist = bindData.child(aBindDistance).asFloat();
     float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
-    if (bindDist > thresh)
+    CHECK_MSTATUS_AND_RETURN(status, MVector());
+    if (bindDist > thresh) {
+#if DEBUG_LOG
+        MGlobal::displayInfo(
+            MString("Vertex at index ") + vertexIndex +
+            MString(" is too far from the cage, skipping deformation.")
+        );
+#endif
         return MVector();
+    }
 
-    float u, v;
-    const double *uvPtr = bindData.child(aBindUV).asDouble2();
-    u = static_cast<float>(uvPtr[0]);
-    v = static_cast<float>(uvPtr[1]);
-    int patchIdx = bindData.child(aBindPatchIndex).asInt();
+    const auto *uvPtr = bindData.child(aBindUV).asFloat2();
+    const float u = uvPtr[0];
+    const float v = uvPtr[1];
+    const int patchIdx = bindData.child(aBindPatchIndex).asInt();
 
-    MPoint p0 = evaluateBezierPatch(preControlPoints[patchIdx], u, v);
-    MPoint p1 = evaluateBezierPatch(controlPoints[patchIdx], u, v);
+    MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx], u, v);
+    MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx], u, v);
 
-    return p1 - p0;
+    return postDeformPoint - preDeformPoint;
 }
 
 MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
@@ -363,7 +357,7 @@ std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataB
     MArrayDataHandle patchArrayHandle = dataBlock.inputArrayValue(matrixArrayAttr, &status);
     CHECK_MSTATUS_AND_RETURN(status, patches);
 
-    unsigned int patchCount = patchArrayHandle.elementCount();
+    const unsigned int patchCount = patchArrayHandle.elementCount();
     patches.reserve(patchCount);
 
     status = patchArrayHandle.jumpToArrayElement(0);
@@ -371,13 +365,10 @@ std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataB
 
     do {
         MDataHandle patchElementHandle = patchArrayHandle.inputValue(&status);
-        if (!status) continue;
-
         MDataHandle matrixArrayDataHandle = patchElementHandle.child(matrixAttr);
         MArrayDataHandle matrixArrayHandle(matrixArrayDataHandle);
 
-        std::vector<MPoint> patchPoints = getPatchPoints(matrixArrayHandle);
-        if (!patchPoints.empty()) {
+        if (auto patchPoints = getPatchPoints(matrixArrayHandle); !patchPoints.empty()) {
             patches.push_back(patchPoints);
         }
     } while (patchArrayHandle.next() == MS::kSuccess);
