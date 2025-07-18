@@ -445,29 +445,31 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
      *
      */
 
-    std::vector<MPoint> controlPoints;
-    controlPoints.reserve(16);
+    std::vector<MPoint> controlPoints(16);
 
-    // Inserts the first 5 points (0-4) from the input (0-4)
-    controlPoints.insert(controlPoints.end(), inputPoints.begin(), inputPoints.begin() + 5);
+    // Bottom row
+    controlPoints[0] = inputPoints[0];
+    controlPoints[1] = inputPoints[1];
+    controlPoints[2] = inputPoints[2];
+    controlPoints[3] = inputPoints[3];
 
-    // Computes and inserts interior point 5
-    controlPoints.push_back(inputPoints[4] + (inputPoints[1] - inputPoints[0]));
+    // Second row
+    controlPoints[4] = inputPoints[4];
+    controlPoints[5] = inputPoints[4] + (inputPoints[1] - inputPoints[0]);
+    controlPoints[6] = inputPoints[5] + (inputPoints[2] - inputPoints[3]);
+    controlPoints[7] = inputPoints[5];
 
-    // Computes and inserts interior point 6
-    controlPoints.push_back(inputPoints[5] + (inputPoints[2] - inputPoints[3]));
+    // Third row
+    controlPoints[8] = inputPoints[6];
+    controlPoints[9] = inputPoints[6] + (inputPoints[9] - inputPoints[8]);
+    controlPoints[10] = inputPoints[7] + (inputPoints[10] - inputPoints[11]);
+    controlPoints[11] = inputPoints[7];
 
-    // Inserts the next 2 points (7, 8) from the input (5, 6)
-    controlPoints.insert(controlPoints.end(), inputPoints.begin() + 5, inputPoints.begin() + 7);
-
-    // Computes and inserts interior point 9
-    controlPoints.push_back(inputPoints[6] + (inputPoints[9] - inputPoints[8]));
-
-    // Computes and inserts interior point 10
-    controlPoints.push_back(inputPoints[7] + (inputPoints[10] - inputPoints[11]));
-
-    // Inserts the last 5 points (11-15) from the input (7-11)
-    controlPoints.insert(controlPoints.end(), inputPoints.begin() + 7, inputPoints.end());
+    // Top row
+    controlPoints[12] = inputPoints[8];
+    controlPoints[13] = inputPoints[9];
+    controlPoints[14] = inputPoints[10];
+    controlPoints[15] = inputPoints[11];
 
     return controlPoints;
 }
