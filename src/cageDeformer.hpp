@@ -51,8 +51,23 @@ private:
      */
     static MStatus updateBindPreMatrixPlugs(MDataBlock &dataBlock);
 
+    /**
+     *  Retrieves the control points for all Bézier patches from the given data block.
+     * @param[in, out] dataBlock The data block of the deformer.
+     * @param preDeform If true, retrieves pre-deformation control points.
+     * @return A vector of vectors containing control points for each Bézier patch.
+     */
     static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preDeform = false);
 
+    /**
+     * Calculates the deform vector for a vertex based on the Bézier patches and the vertex index.
+     * @param[in, out] dataBlock The data block of the deformer.
+     * @param[in] controlPoints The control points of the Bézier patches.
+     * @param[in] preControlPoints The pre-deformation control points of the Bézier patches.
+     * @param[in] vertexIndex The index of the vertex being deformed.
+     * @param[in] geometryIndex The index of the geometry being deformed.
+     * @return MVector representing the deformation vector for the vertex.
+     */
     static MVector getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
                                    const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
                                    unsigned int geometryIndex);
@@ -68,10 +83,22 @@ private:
     static MStatus bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                         unsigned int geometryIndex);
 
-    static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
-
+    /**
+     * Calculates the binding for a specific point.
+     * @param[in,out] controlPoints The control points of the Bézier patches.
+     * @param[in] queryPoint The point for which the binding is calculated.
+     * @return An array containing the UV coordinates of the binding point in the patch.
+     */
     static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints,
                                               const MPoint &queryPoint);
 
+    /**
+     * Retrieves the control points for a specific Bézier patch.
+     * @param [in,out] matrixArray The array data handle containing the matrices of the patch.
+     * @return A vector of MPoints representing the control points of the patch.
+     */
     static std::vector<MPoint> getPatchPoints(MArrayDataHandle &matrixArray);
+
+    // This still needs to be implemented:
+    // static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
 };
