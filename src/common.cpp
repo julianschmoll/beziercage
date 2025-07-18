@@ -129,6 +129,9 @@ void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MM
 
 MPoint deCasteljau(const std::vector<MPoint> &points, float t) {
     if (points.empty()) {
+#if ERROR_LOG
+        MGlobal::displayError("No points provided for de Casteljau's algorithm.");
+#endif
         return {};
     }
     auto p = points;
@@ -142,7 +145,12 @@ MPoint deCasteljau(const std::vector<MPoint> &points, float t) {
 
 MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v) {
     if (controlPoints.size() != 16) {
-        return {};
+#if ERROR_LOG
+        MGlobal::displayError(
+            "Bezier patch must consist of 16 control points, found " +
+            MString(std::to_string(controlPoints.size()).c_str())
+        );
+#endif
     }
 
     std::vector<MPoint> vPoints;
