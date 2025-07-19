@@ -34,7 +34,7 @@ fi
 CMAKE_FLAGS="-DLOG_LEVEL=$LOG_LEVEL_VALUE -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}"
 echo "Setting LOG_LEVEL to $LOG_LEVEL_VALUE"
 
-cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE="$root_folder/vcpkg/scripts/buildsystems/vcpkg.cmake" "$root_folder"
+cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
 cmake --build . --target install --config Release
 cmake --build . --target clean
 

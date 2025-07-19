@@ -1,6 +1,0 @@
-[submodule "vcpkg"]
-	path = vcpkg
-	url = https://github.com/microsoft/vcpkg.git
-[submodule "ext/LBFGSpp"]
-	path = ext/LBFGSpp
-	url = https://github.com/yixuan/LBFGSpp.git
