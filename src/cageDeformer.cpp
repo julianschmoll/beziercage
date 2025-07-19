@@ -21,9 +21,6 @@
 #include <maya/MTypeId.h>
 #include <maya/MPxDeformerNode.h>
 
-#include <LBFGSB.h>
-#include <Eigen/Core>
-
 
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId bezierCage::id(0x0013f8c0);
@@ -300,6 +297,11 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
             }
             patchIndex++;
         }
+#if DEBUG_LOG
+        MGlobal::displayInfo(MString("Minimum distance for vertex at index ") +
+                             MString(std::to_string(geometryIterator.index()).c_str()) + ": " +
+                             MString(std::to_string(minDistance).c_str()));
+#endif
     }
 
     vertexBindDataHandle.set(vertexBindDataBuilder);
@@ -484,40 +486,32 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
 }
 
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint) {
-    Eigen::VectorXd qp(3);
-    qp << queryPoint.x, queryPoint.y, queryPoint.z;
+    constexpr int resolution = 20;
+    constexpr float earlyExitThreshold = 0.12f;
+    float minDist = std::numeric_limits<float>::max();
+    float bestU = 0.5f, bestV = 0.5f;
 
-    LBFGSpp::LBFGSBParam<double> param;
-    param.epsilon = 1e-6;
-    param.max_iterations = 100;
-
-    LBFGSpp::LBFGSBSolver<double> solver(param);
-
-    Eigen::VectorXd x(2);
-    x << 0.5, 0.5;
-    double fx;
-
-    Eigen::VectorXd lb(2), ub(2);
-    lb << 0.0, 0.0;
-    ub << 1.0, 1.0;
-
-    auto func = [&](const Eigen::VectorXd &x, Eigen::VectorXd &grad) {
-        MPoint p = evaluateBezierPatch(controlPoints, static_cast<float>(x[0]), static_cast<float>(x[1]));
-        double dx = p.x - qp[0], dy = p.y - qp[1], dz = p.z - qp[2];
-        double f = dx * dx + dy * dy + dz * dz;
-
-        const double eps = 1e-6;
-        for (int i = 0; i < 2; ++i) {
-            Eigen::VectorXd xe = x;
-            xe[i] = std::min(1.0, std::max(0.0, x[i] + eps));
-            MPoint pi = evaluateBezierPatch(controlPoints, static_cast<float>(xe[0]), static_cast<float>(xe[1]));
-            double dxi = pi.x - qp[0], dyi = pi.y - qp[1], dzi = pi.z - qp[2];
-            grad[i] = ((dxi * dxi + dyi * dyi + dzi * dzi) - f) / eps;
+    for (int i = 0; i <= resolution; ++i) {
+        float u = static_cast<float>(i) / resolution;
+        for (int j = 0; j <= resolution; ++j) {
+            float v = static_cast<float>(j) / resolution;
+            MPoint p = evaluateBezierPatch(controlPoints, u, v);
+            float dist = static_cast<float>(p.distanceTo(queryPoint));
+            if (dist < minDist) {
+                minDist = dist;
+                bestU = u;
+                bestV = v;
+                if (minDist < earlyExitThreshold) {
+#if DEBUG_LOG
+                    MGlobal::displayInfo(
+                        MString("Early exit from findBindingUV with u: ") + MString(std::to_string(bestU).c_str()) +
+                        MString(", v: ") + MString(std::to_string(bestV).c_str())
+                    );
+#endif
+                    return {bestU, bestV};
+                }
+            }
         }
-        return f;
-    };
-
-    solver.minimize(func, x, fx, lb, ub);
-
-    return {static_cast<float>(x[0]), static_cast<float>(x[1])};
+    }
+    return {bestU, bestV};
 }
