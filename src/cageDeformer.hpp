@@ -44,30 +44,61 @@ public:
     static MObject aDirty;
 
 private:
+    /**
+     * Matches the length of bind pre matrices array to the patch matrices array.
+     * @param[in,out] dataBlock The data block of the deformer.
+     * @return MStatus indicating success or failure.
+     */
+    static MStatus updateBindPreMatrixPlugs(MDataBlock &dataBlock);
 
-    static void updateBindPreMatrixPlugs(MDataBlock &dataBlock);
+    /**
+     *  Retrieves the control points for all Bézier patches from the given data block.
+     * @param[in, out] dataBlock The data block of the deformer.
+     * @param preDeform If true, retrieves pre-deformation control points.
+     * @return A vector of vectors containing control points for each Bézier patch.
+     */
+    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preDeform = false);
 
-    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preMatrix = false);
-
+    /**
+     * Calculates the deform vector for a vertex based on the Bézier patches and the vertex index.
+     * @param[in, out] dataBlock The data block of the deformer.
+     * @param[in] controlPoints The control points of the Bézier patches.
+     * @param[in] preControlPoints The pre-deformation control points of the Bézier patches.
+     * @param[in] vertexIndex The index of the vertex being deformed.
+     * @param[in] geometryIndex The index of the geometry being deformed.
+     * @return MVector representing the deformation vector for the vertex.
+     */
     static MVector getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
                                    const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
                                    unsigned int geometryIndex);
 
-    bool bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-              unsigned int geometryIndex);
+    /**
+     * Binds the geometry to the cage.
+     * @param[in,out] dataBlock The data block of the deformer.
+     * @param[in,out] geometryIterator The geometry iterator for the deformed geometry.
+     * @param[in] localToWorldMatrix The local to world matrix for the geometry.
+     * @param[in] geometryIndex The index of the geometry being deformed.
+     * @return MStatus indicating success or failure.
+     */
+    static MStatus bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
+                        unsigned int geometryIndex);
 
-    static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
-
-    static std::array<float, 2> findBindingUV(const std::vector<std::vector<MPoint> > &controlPoints,
+    /**
+     * Calculates the binding for a specific point.
+     * @param[in,out] controlPoints The control points of the Bézier patches.
+     * @param[in] queryPoint The point for which the binding is calculated.
+     * @return An array containing the UV coordinates of the binding point in the patch.
+     */
+    static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints,
                                               const MPoint &queryPoint);
 
-    static MPoint evaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
+    /**
+     * Retrieves the control points for a specific Bézier patch.
+     * @param [in,out] matrixArray The array data handle containing the matrices of the patch.
+     * @return A vector of MPoints representing the control points of the patch.
+     */
+    static std::vector<MPoint> getPatchPoints(MArrayDataHandle &matrixArray);
 
-    static std::vector<MPoint> getPatchPoints(const MArrayDataHandle &matrixArray);
-
-    static MPoint calculateInteriorPoint(const MPoint &point1, const MPoint &point2, const MPoint &point3);
-
-    static MPoint deCasteljau(const std::vector<MPoint> &points, float t);
-
-    static MPoint npEvaluateBezierPatch(const std::vector<std::vector<MPoint> > &controlPoints, float u, float v);
+    // This still needs to be implemented:
+    // static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
 };

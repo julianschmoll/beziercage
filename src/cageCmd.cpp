@@ -1,6 +1,8 @@
 #include "cageCmd.hpp"
+#include "cageDeformer.hpp"
+#include "common.hpp"
 
-const char *cageCmd::kName = "cage";
+const char *cageCmd::kName = "deformCage";
 
 const char *cageCmd::kNameFlagShort = "-n";
 const char *cageCmd::kNameFlagLong = "-name";
@@ -61,7 +63,8 @@ MStatus cageCmd::doIt(const MArgList &args) {
         return MS::kFailure;
     }
 
-    MString command = "deformer -type cage -n \"" + name_ + "\"";
+    MString deformerType = MString(bezierCage::typeName);
+    MString command = "deformer -type " + deformerType + " -n \"" + name_ + "\"";
 
     for (unsigned int i = 0; i < pathDriven_.length(); ++i) {
         MFnDagNode fnDriven(pathDriven_[i]);

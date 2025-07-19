@@ -7,7 +7,13 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/modules)
 
 add_subdirectory(src)
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/module.txt" "${PROJECT_PATH}/${PROJECT_NAME}.txt")
+# 1: Error, 2: Info, 3: Debug
+if(NOT DEFINED LOG_LEVEL)
+    set(LOG_LEVEL 1)
+endif()
+
+target_compile_definitions(cage PUBLIC LOG_LEVEL=${LOG_LEVEL})
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/module.mod" "${PROJECT_PATH}/${PROJECT_NAME}.mod")
 
 install(DIRECTORY scripts DESTINATION cage)
 install(FILES data/USAGE.md DESTINATION ${CMAKE_BINARY_DIR})

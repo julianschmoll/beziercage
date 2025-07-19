@@ -1,5 +1,4 @@
-#ifndef cageCMD_HPP
-#define cageCMD_HPP
+#pragma once
 
 #include <maya/MSelectionList.h>
 #include <maya/MDagPath.h>
@@ -70,4 +69,3 @@ private:
     MObject oDeformerNode_;
     MDagPathArray pathDriven_;
 };
-#endif

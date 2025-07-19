@@ -86,8 +86,9 @@ private:
      * @param[out] vertexIndices The array to be filled with vertex indices.
      * @return MStatus indicating success or failure.
      */
-    static MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
-                                     MIntArray &vertexIndices) ;
+    static MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId,
+                                            int triId,
+                                            MIntArray &vertexIndices);
 
     /**
     * Retrieves the original geometry path from the plug.

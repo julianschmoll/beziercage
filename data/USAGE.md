@@ -14,11 +14,11 @@ The deformer can either be added via the menu item or with the following Python 
 from maya import cmds
 
 # Apply the deformer to the current selection with the standard name
-cmds.cage()
+cmds.deformCage()
 
 # Apply to specific objects with a specific name
-cmds.cage("object1", "object2", name="Schmiererei")
+cmds.deformCage("object1", "object2", name="Schmiererei")
 
 # To query all available flags, use
-cmds.cage(help=True)
+cmds.deformCage(help=True)
 ```
