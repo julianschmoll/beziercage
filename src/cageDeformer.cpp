@@ -45,7 +45,7 @@ MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
 
-bezierCage::bezierCage() {
+bezierCage::bezierCage(): m_taskData() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
     // Fallback to a single thread if the number of threads cannot be determined
     if (kTaskCount == 0) { kTaskCount = 1; }
@@ -56,8 +56,6 @@ bezierCage::bezierCage() {
 }
 
 MStatus bezierCage::initialize() {
-    MStatus status;
-
     MFnCompoundAttribute cAttr;
     MFnMatrixAttribute mAttr;
     MFnNumericAttribute fAttr;
@@ -150,7 +148,7 @@ MStatus bezierCage::initialize() {
     addAttribute(aGeometryBindData);
 
     // Attribute affects
-    status = attributeAffects(aPatchMatrices, outputGeom);
+    MStatus status = attributeAffects(aPatchMatrices, outputGeom);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     status = attributeAffects(aThreshDist, outputGeom);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -266,7 +264,7 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
     ThreadData *pThreadData = static_cast<ThreadData *>(pData);
     int taskCount = pThreadData[0].numTasks;
     for (int i = 0; i < taskCount; ++i) {
-        MThreadPool::createTask(ThreadEvaluate, (void *) &pThreadData[i], pRoot);
+        MThreadPool::createTask(ThreadEvaluate, static_cast<void *>(&pThreadData[i]), pRoot);
     }
     MThreadPool::executeAndJoin(pRoot);
 }
