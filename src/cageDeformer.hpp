@@ -11,10 +11,32 @@
 #include <maya/MPlug.h>
 #include <vector>
 #include <array>
+#include <maya/MThreadPool.h>
+#include <maya/MPointArray.h>
+
+
+struct TaskData {
+    unsigned int numVerts;
+    MPointArray *pPoints;
+    const std::vector<float> *pBindDist;
+    const std::vector<float> *pWeights;
+    float envelope;
+    float thresh;
+    const std::vector<std::vector<MPoint> > *pControlPoints;
+    const std::vector<std::vector<MPoint> > *pPreControlPoints;
+    const std::vector<unsigned int> *pPatchIdx;
+    const std::vector<float> *pU;
+    const std::vector<float> *pV;
+};
+
+struct ThreadData {
+    unsigned int start, end, numTasks;
+    TaskData *pData;
+};
 
 class bezierCage : public MPxDeformerNode {
 public:
-    bezierCage() = default;
+    bezierCage();
 
     ~bezierCage() override = default;
 
@@ -43,7 +65,15 @@ public:
     static MObject aGeometryBindData;
     static MObject aDirty;
 
+    std::vector<ThreadData> m_threadData;
+    TaskData m_taskData;
+
 private:
+    /**
+     * Creates thread data for parallel processing.
+     */
+    void CreateThreadData();
+
     /**
      * Matches the length of bind pre matrices array to the patch matrices array.
      * @param[in,out] dataBlock The data block of the deformer.
@@ -52,7 +82,7 @@ private:
     static MStatus updateBindPreMatrixPlugs(MDataBlock &dataBlock);
 
     /**
-     *  Retrieves the control points for all Bézier patches from the given data block.
+     * Retrieves the control points for all Bézier patches from the given data block.
      * @param[in, out] dataBlock The data block of the deformer.
      * @param preDeform If true, retrieves pre-deformation control points.
      * @return A vector of vectors containing control points for each Bézier patch.
@@ -60,17 +90,18 @@ private:
     static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preDeform = false);
 
     /**
-     * Calculates the deform vector for a vertex based on the Bézier patches and the vertex index.
-     * @param[in, out] dataBlock The data block of the deformer.
-     * @param[in] controlPoints The control points of the Bézier patches.
-     * @param[in] preControlPoints The pre-deformation control points of the Bézier patches.
-     * @param[in] vertexIndex The index of the vertex being deformed.
-     * @param[in] geometryIndex The index of the geometry being deformed.
-     * @return MVector representing the deformation vector for the vertex.
+     * Creates thread tasks for parallel region execution.
+     * @param[in] pData Pointer to the thread data array.
+     * @param[in] pRoot Pointer to the root task for the thread pool.
      */
-    static MVector getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
-                                   const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
-                                   unsigned int geometryIndex);
+    static void CreateTasks(void *pData, MThreadRootTask *pRoot);
+
+    /**
+     * Evaluates the deformation for a given thread's data range.
+     * @param[in] pParam Pointer to the thread's data.
+     * @return MThreadRetVal Return value for the thread pool.
+     */
+    static MThreadRetVal ThreadEvaluate(void *pParam);
 
     /**
      * Binds the geometry to the cage.

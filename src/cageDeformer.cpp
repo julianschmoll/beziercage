@@ -20,6 +20,10 @@
 #include <maya/MObject.h>
 #include <maya/MTypeId.h>
 #include <maya/MPxDeformerNode.h>
+#include <maya/MThreadPool.h>
+
+#include <thread>
+#include <vector>
 
 
 // This ID is registered with Autodesk and should not clash with other nodes.
@@ -41,6 +45,15 @@ MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
 
+bezierCage::bezierCage() {
+    unsigned int kTaskCount = std::thread::hardware_concurrency();
+    // Fallback to a single thread if the number of threads cannot be determined
+    if (kTaskCount == 0) { kTaskCount = 1; }
+#if DEBUG_LOG
+    MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
+#endif
+    m_threadData.resize(kTaskCount);
+}
 
 MStatus bezierCage::initialize() {
     MStatus status;
@@ -160,73 +173,125 @@ void *bezierCage::creator() {
 
 MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                            unsigned int geometryIndex) {
+    // early exit if envelope is 0
     MStatus status;
     const float fEnvelope = dataBlock.inputValue(envelope, &status).asFloat();
     CHECK_MSTATUS_AND_RETURN_IT(status);
     if (fEnvelope == 0.0f) { return status; }
     status = updateBindPreMatrixPlugs(dataBlock);
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    // bind the geometry if not already bound
     status = bind(dataBlock, geometryIterator, localToWorldMatrix, geometryIndex);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
+    // gather all data for threading
     const auto controlPoints = getControlPoints(dataBlock);
     const auto preControlPoints = getControlPoints(dataBlock, true);
+    MPointArray points;
+    geometryIterator.allPositions(points);
+    std::vector<float> bindDist, weights, u, v;
+    std::vector<unsigned int> patchIdx;
+    const auto numPoints = points.length();
+    bindDist.reserve(numPoints);
+    weights.reserve(numPoints);
+    u.reserve(numPoints);
+    v.reserve(numPoints);
+    patchIdx.reserve(numPoints);
+    float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPoint currentPoint;
-    MVector deformVector;
+    // gather bind data
+    MArrayDataHandle geomBindHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = geomBindHandle.jumpToElement(geometryIndex);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MDataHandle geomElem = geomBindHandle.inputValue(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
 
-    for (geometryIterator.reset(); !geometryIterator.isDone(); geometryIterator.next()) {
-        currentPoint = geometryIterator.position();
-        deformVector = getDeformVector(
-            dataBlock,
-            controlPoints,
-            preControlPoints,
-            geometryIterator.index(),
-            geometryIndex
-        );
-        const float weight = weightValue(dataBlock, geometryIndex, geometryIterator.index());
-        geometryIterator.setPosition(currentPoint + (deformVector * weight * fEnvelope));
+    for (unsigned int i = 0; i < points.length(); ++i) {
+        status = vertBindHandle.jumpToElement(i);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MDataHandle bindData = vertBindHandle.inputValue(&status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        float bindDistVal = bindData.child(aBindDistance).asFloat();
+        const float *uvPtr = bindData.child(aBindUV).asFloat2();
+        float uVal = uvPtr[0];
+        float vVal = uvPtr[1];
+        unsigned int patchIdxVal = static_cast<unsigned int>(bindData.child(aBindPatchIndex).asInt());
+
+        float weightVal = weightValue(dataBlock, geometryIndex, i);
+
+        bindDist.push_back(bindDistVal);
+        u.push_back(uVal);
+        v.push_back(vVal);
+        patchIdx.push_back(patchIdxVal);
+        weights.push_back(weightVal);
     }
+
+    // prepare thread tasks
+    m_taskData.numVerts = points.length();
+    m_taskData.pPoints = &points;
+    m_taskData.pBindDist = &bindDist;
+    m_taskData.pWeights = &weights;
+    m_taskData.envelope = fEnvelope;
+    m_taskData.thresh = thresh;
+    m_taskData.pControlPoints = &controlPoints;
+    m_taskData.pPreControlPoints = &preControlPoints;
+    m_taskData.pPatchIdx = &patchIdx;
+    m_taskData.pU = &u;
+    m_taskData.pV = &v;
+
+    CreateThreadData();
+    MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&m_threadData[0]));
+    geometryIterator.setAllPositions(points);
+
     return status;
 }
 
-MVector bezierCage::getDeformVector(MDataBlock &dataBlock, const std::vector<std::vector<MPoint> > &controlPoints,
-                                    const std::vector<std::vector<MPoint> > &preControlPoints, unsigned int vertexIndex,
-                                    unsigned int geometryIndex) {
-    MStatus status;
-    MArrayDataHandle geomBindHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    status = geomBindHandle.jumpToElement(geometryIndex);
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    MDataHandle geomElem = geomBindHandle.inputValue(&status);
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
-    status = vertBindHandle.jumpToElement(vertexIndex);
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    MDataHandle bindData = vertBindHandle.inputValue(&status);
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    float bindDist = bindData.child(aBindDistance).asFloat();
-    float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
-    CHECK_MSTATUS_AND_RETURN(status, MVector());
-    if (bindDist > thresh) {
-#if DEBUG_LOG
-        MGlobal::displayInfo(
-            MString("Vertex at index ") + vertexIndex +
-            MString(" is too far from the cage, skipping deformation.")
-        );
-#endif
-        return MVector();
+void bezierCage::CreateThreadData() {
+    int taskCount = static_cast<int>(m_threadData.size());
+    unsigned int taskLength = (m_taskData.numVerts + taskCount - 1) / taskCount;
+    unsigned int start = 0, end = taskLength;
+    for (int i = 0; i < taskCount; ++i) {
+        if (i == taskCount - 1) { end = m_taskData.numVerts; }
+        m_threadData[i] = {start, end, static_cast<unsigned int>(taskCount), &m_taskData};
+        start += taskLength;
+        end += taskLength;
     }
+}
 
-    const auto *uvPtr = bindData.child(aBindUV).asFloat2();
-    const float u = uvPtr[0];
-    const float v = uvPtr[1];
-    const int patchIdx = bindData.child(aBindPatchIndex).asInt();
+void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
+    ThreadData *pThreadData = static_cast<ThreadData *>(pData);
+    int taskCount = pThreadData[0].numTasks;
+    for (int i = 0; i < taskCount; ++i) {
+        MThreadPool::createTask(ThreadEvaluate, (void *) &pThreadData[i], pRoot);
+    }
+    MThreadPool::executeAndJoin(pRoot);
+}
 
-    MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx], u, v);
-    MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx], u, v);
+MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
+    ThreadData *pThreadData = static_cast<ThreadData *>(pParam);
+    TaskData *pData = pThreadData->pData;
+    auto &points = *pData->pPoints;
+    const auto &bindDist = *pData->pBindDist;
+    const auto &weights = *pData->pWeights;
+    const auto &patchIdx = *pData->pPatchIdx;
+    const auto &u = *pData->pU;
+    const auto &v = *pData->pV;
+    const auto &controlPoints = *pData->pControlPoints;
+    const auto &preControlPoints = *pData->pPreControlPoints;
 
-    return postDeformPoint - preDeformPoint;
+    for (unsigned int i = pThreadData->start; i < pThreadData->end; ++i) {
+        if (bindDist[i] < pData->thresh) {
+            MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx[i]], u[i], v[i]);
+            MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx[i]], u[i], v[i]);
+            MVector deformVec = postDeformPoint - preDeformPoint;
+            points[i] += deformVec * weights[i] * pData->envelope;
+        }
+    }
+    return 0;
 }
 
 MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
@@ -407,7 +472,7 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     if (matrixArray.elementCount() != 12) {
 #if ERROR_LOG
         MGlobal::displayError("Patch must consist of 12 matrices, found " +
-            MString(std::to_string(matrixArray.elementCount()).c_str()));
+                              MString(std::to_string(matrixArray.elementCount()).c_str()));
 #endif
         return {};
     }

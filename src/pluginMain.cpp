@@ -25,6 +25,8 @@ MStatus initializePlugin(MObject obj) {
       "try:import cage.menu;cage.menu.create()\nexcept:MGlobal.displayWarning('Could not add cage Menu')");
   }
 
+  MThreadPool::init();
+
   MGlobal::displayInfo("Initialized cage");
 
   return status;
@@ -48,6 +50,8 @@ MStatus uninitializePlugin(MObject obj) {
     MGlobal::executePythonCommandOnIdle(
       "try:import cage.menu;cage.menu.destroy()\nexcept:MGlobal.displayWarning('Could not remove cage Menu')");
   }
+
+  MThreadPool::release();
 
   MGlobal::displayInfo("Uninitialized cage");
 
