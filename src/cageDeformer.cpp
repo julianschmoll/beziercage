@@ -22,6 +22,9 @@
 #include <maya/MPxDeformerNode.h>
 #include <maya/MThreadPool.h>
 
+#include <thread>
+#include <vector>
+
 
 // This ID is registered with Autodesk and should not clash with other nodes.
 MTypeId bezierCage::id(0x0013f8c0);
@@ -41,12 +44,14 @@ MObject bezierCage::aVertexBindPosition;
 MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
-
 std::vector<ThreadData> m_threadData;
 TaskData m_taskData;
 
 bezierCage::bezierCage() {
-    MThreadPool::init();
+    unsigned int kTaskCount = std::thread::hardware_concurrency();
+#if DEBUG_LOG
+    MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
+#endif
     m_threadData.resize(kTaskCount);
 }
 
@@ -204,14 +209,14 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         status = vertBindHandle.jumpToElement(i);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MDataHandle bindData = vertBindHandle.inputValue(&status);
-
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         float bindDistVal = bindData.child(aBindDistance).asFloat();
         const float *uvPtr = bindData.child(aBindUV).asFloat2();
         float uVal = uvPtr[0];
         float vVal = uvPtr[1];
         unsigned int patchIdxVal = static_cast<unsigned int>(bindData.child(aBindPatchIndex).asInt());
 
-        float weightVal = weightValue(dataBlock, i, geometryIndex);
+        float weightVal = weightValue(dataBlock, geometryIndex, i);
 
         bindDist.push_back(bindDistVal);
         u.push_back(uVal);

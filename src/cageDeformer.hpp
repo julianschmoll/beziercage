@@ -34,10 +34,6 @@ struct ThreadData {
     TaskData *pData;
 };
 
-static const int kTaskCount = 16;
-extern std::vector<ThreadData> m_threadData;
-extern TaskData m_taskData;
-
 class bezierCage : public MPxDeformerNode {
 public:
     bezierCage();
@@ -70,6 +66,9 @@ public:
     static MObject aVertexBindData;
     static MObject aGeometryBindData;
     static MObject aDirty;
+
+    std::vector<ThreadData> m_threadData;
+    TaskData m_taskData;
 
 private:
     /**
