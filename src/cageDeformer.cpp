@@ -47,6 +47,9 @@ MObject bezierCage::aDirty;
 
 bezierCage::bezierCage() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
+    if (kTaskCount == 0) {
+        kTaskCount = 1; // Fallback to a single thread if hardware_concurrency is not well-defined
+    }
 #if DEBUG_LOG
     MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
 #endif
