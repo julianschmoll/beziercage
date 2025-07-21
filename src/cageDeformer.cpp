@@ -47,9 +47,8 @@ MObject bezierCage::aDirty;
 
 bezierCage::bezierCage() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
-    if (kTaskCount == 0) {
-        kTaskCount = 1; // Fallback to a single thread if hardware_concurrency is not well-defined
-    }
+    // Fallback to a single thread if the number of threads cannot be determined
+    if (kTaskCount == 0) { kTaskCount = 1; }
 #if DEBUG_LOG
     MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
 #endif
@@ -275,14 +274,14 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
 MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     ThreadData *pThreadData = static_cast<ThreadData *>(pParam);
     TaskData *pData = pThreadData->pData;
-    auto& points = *pData->pPoints;
-    const auto& bindDist = *pData->pBindDist;
-    const auto& weights = *pData->pWeights;
-    const auto& patchIdx = *pData->pPatchIdx;
-    const auto& u = *pData->pU;
-    const auto& v = *pData->pV;
-    const auto& controlPoints = *pData->pControlPoints;
-    const auto& preControlPoints = *pData->pPreControlPoints;
+    auto &points = *pData->pPoints;
+    const auto &bindDist = *pData->pBindDist;
+    const auto &weights = *pData->pWeights;
+    const auto &patchIdx = *pData->pPatchIdx;
+    const auto &u = *pData->pU;
+    const auto &v = *pData->pV;
+    const auto &controlPoints = *pData->pControlPoints;
+    const auto &preControlPoints = *pData->pPreControlPoints;
 
     for (unsigned int i = pThreadData->start; i < pThreadData->end; ++i) {
         if (bindDist[i] < pData->thresh) {
