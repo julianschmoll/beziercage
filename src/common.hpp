@@ -92,5 +92,20 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
 */
 void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);
 
+
+/**
+ * Evaluates a point on a Bézier curve using De Casteljau's algorithm.
+ * @param[in] points The control points of the Bézier curve.
+ * @param[in] t The parameter along the curve (0 ≤ t ≤ 1).
+ * @return The evaluated point on the curve.
+ */
 MPoint deCasteljau(const std::vector<MPoint> &points, float t);
+
+/**
+ * Evaluates a point on a Bézier patch using the given control points and parameters.
+ * @param[in] controlPoints The control points of the Bézier patch (typically 16 points).
+ * @param[in] u The U parameter (0 ≤ u ≤ 1).
+ * @param[in] v The V parameter (0 ≤ v ≤ 1).
+ * @return The evaluated point on the patch.
+ */
 MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v);
