@@ -38,7 +38,7 @@ class bezierCage : public MPxDeformerNode {
 public:
     bezierCage();
 
-    ~bezierCage() override;
+    ~bezierCage() override = default;
 
     static void *creator();
 
@@ -46,8 +46,6 @@ public:
 
     MStatus deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
                    unsigned int geometryIndex) override;
-
-    void CreateThreadData();
 
     static MTypeId id;
     static const char *typeName;
@@ -71,6 +69,11 @@ public:
     TaskData m_taskData;
 
 private:
+    /**
+     * Creates thread data for parallel processing.
+     */
+    void CreateThreadData();
+
     /**
      * Matches the length of bind pre matrices array to the patch matrices array.
      * @param[in,out] dataBlock The data block of the deformer.

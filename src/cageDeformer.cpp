@@ -44,8 +44,6 @@ MObject bezierCage::aVertexBindPosition;
 MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
-std::vector<ThreadData> m_threadData;
-TaskData m_taskData;
 
 bezierCage::bezierCage() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
@@ -54,8 +52,6 @@ bezierCage::bezierCage() {
 #endif
     m_threadData.resize(kTaskCount);
 }
-
-bezierCage::~bezierCage() { MThreadPool::release(); }
 
 MStatus bezierCage::initialize() {
     MStatus status;
@@ -269,23 +265,21 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
 MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     ThreadData *pThreadData = static_cast<ThreadData *>(pParam);
     TaskData *pData = pThreadData->pData;
+    auto& points = *pData->pPoints;
+    const auto& bindDist = *pData->pBindDist;
+    const auto& weights = *pData->pWeights;
+    const auto& patchIdx = *pData->pPatchIdx;
+    const auto& u = *pData->pU;
+    const auto& v = *pData->pV;
+    const auto& controlPoints = *pData->pControlPoints;
+    const auto& preControlPoints = *pData->pPreControlPoints;
+
     for (unsigned int i = pThreadData->start; i < pThreadData->end; ++i) {
-        float bindDist = (*pData->pBindDist)[i];
-        float thresh = pData->thresh;
-        float weight = (*pData->pWeights)[i];
-        float envelope = pData->envelope;
-        unsigned int patchIdx = (*pData->pPatchIdx)[i];
-        float u = (*pData->pU)[i];
-        float v = (*pData->pV)[i];
-
-        const auto &controlPoints = (*pData->pControlPoints);
-        const auto &preControlPoints = (*pData->pPreControlPoints);
-
-        if (bindDist < thresh) {
-            MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx], u, v);
-            MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx], u, v);
+        if (bindDist[i] < pData->thresh) {
+            MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx[i]], u[i], v[i]);
+            MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx[i]], u[i], v[i]);
             MVector deformVec = postDeformPoint - preDeformPoint;
-            (*pData->pPoints)[i] = (*pData->pPoints)[i] + deformVec * weight * envelope;
+            points[i] += deformVec * weights[i] * pData->envelope;
         }
     }
     return 0;
