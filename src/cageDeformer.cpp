@@ -190,6 +190,12 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     geometryIterator.allPositions(points);
     std::vector<float> bindDist, weights, u, v;
     std::vector<unsigned int> patchIdx;
+    const auto numPoints = points.length();
+    bindDist.reserve(numPoints);
+    weights.reserve(numPoints);
+    u.reserve(numPoints);
+    v.reserve(numPoints);
+    patchIdx.reserve(numPoints);
     float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -199,6 +205,7 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     status = geomBindHandle.jumpToElement(geometryIndex);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     MDataHandle geomElem = geomBindHandle.inputValue(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
     MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
 
     for (unsigned int i = 0; i < points.length(); ++i) {
@@ -246,7 +253,7 @@ void bezierCage::CreateThreadData() {
     unsigned int taskLength = (m_taskData.numVerts + taskCount - 1) / taskCount;
     unsigned int start = 0, end = taskLength;
     for (int i = 0; i < taskCount; ++i) {
-        if (i == taskCount - 1) end = m_taskData.numVerts;
+        if (i == taskCount - 1) { end = m_taskData.numVerts; }
         m_threadData[i] = {start, end, static_cast<unsigned int>(taskCount), &m_taskData};
         start += taskLength;
         end += taskLength;
