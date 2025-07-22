@@ -17,16 +17,19 @@ class TestPluginLoading(unittest.TestCase):
     """Test Initialization of plugin."""
 
     @decorators.plugin_loaded(PLUGIN)
+    @decorators.clean_scene()
     def test_load(self):
         """Initialize cage."""
         _check_plugin_state(loaded=True)
 
     @decorators.plugin_loaded(PLUGIN)
+    @decorators.clean_scene()
     def test_unload(self):
         """Uninitialize cage."""
         cmds.unloadPlugin(PLUGIN)
         _check_plugin_state(loaded=False)
 
+    @decorators.clean_scene()
     def test_cage_import(self):
         """Test importing cage."""
         assert cage, "Could not import cage python module."
