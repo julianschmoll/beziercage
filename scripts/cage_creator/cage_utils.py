@@ -76,14 +76,13 @@ def is_close(proximity_threshold, point1, point2):
 
     Args:
         proximity_threshold (float): The distance threshold to consider points close.
-        point1 (tuple): First point (x, y, z).
-        point2 (tuple): Second point (x, y, z).
+        point1 (OpenMaya.MPoint): First point.
+        point2 (OpenMaya.MPoint): Second point.
 
     Returns:
         bool: True if points are close, False otherwise.
     """
-    distance = math.sqrt(sum((p1 - p2) ** 2 for p1, p2 in zip(point1, point2)))
-    return distance <= proximity_threshold
+    return (point1 - point2).length() <= proximity_threshold
 
 
 def draw_display_line(controls, name="displayLine", override_type=2, override_enabled=True):
