@@ -16,4 +16,6 @@ target_compile_definitions(cage PUBLIC LOG_LEVEL=${LOG_LEVEL})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/module.mod" "${PROJECT_PATH}/${PROJECT_NAME}.mod")
 
 install(DIRECTORY scripts DESTINATION cage)
+install(DIRECTORY data/icons DESTINATION cage)
 install(FILES data/USAGE.md DESTINATION ${CMAKE_BINARY_DIR})
+install(FILES src/cage_creation_context.py DESTINATION cage/plug-ins)

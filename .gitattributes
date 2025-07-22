@@ -1,0 +1,3 @@
+*.ma text
+*.ma linguist-language=MEL
+*.sh text eol=lf
