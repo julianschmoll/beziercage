@@ -3,6 +3,7 @@ from maya import cmds
 from maya import mel
 
 
+# We use this id to identify the cage menu items.
 ID = 0x0011580B
 
 
@@ -12,27 +13,25 @@ def create():
     for menu in ['mainDeformMenu', 'mainRigDeformationsMenu']:
         mel.eval(f'ChaDeformationsMenu MayaWindow|{menu};')
         items = cmds.menu(menu, q=True, ia=True)
-        section = None
         for item in items:
-            if cmds.menuItem(item, q=True, divider=True):
-                section = cmds.menuItem(item, q=True, label=True)
             menu_label = cmds.menuItem(item, q=True, label=True)
-            if menu_label == "Morph" and section == "Create":
+            if menu_label == "softModDialogItem":
                 cage = cmds.menuItem(
-                    label="cage",
-                    command=_create_deformer,
+                    label="Cage Tool",
+                    command=_enter_tool_context,
                     insertAfter=item,
                     parent=menu,
                     annotation="Creates cage Deformer on Current Selection.",
-                    data=ID
+                    data=ID,
+                    image="creation_context_32.png"
                 )
                 cmds.menuItem(
-                    label="cageOptions",
+                    label="cageToolOptions",
                     command=_display_options,
                     insertAfter=cage,
                     parent=menu,
                     optionBox=True,
-                    annotation="Opens Optioins Dialog for cage Deformer.",
+                    annotation="Opens Options Dialog for cage Deformer.",
                     data=ID
                 )
 
@@ -48,13 +47,13 @@ def destroy():
                 cmds.deleteUI(item, menuItem=True)
 
 
-def _create_deformer(*args, **kwargs):  # pylint: disable=unused-argument
-    # here we need to check saved option vars
-    cmds.cage()
+def _enter_tool_context(*args, **kwargs):  # pylint: disable=unused-argument
+    cage_creator_ctx = cmds.CageCreatorContext()
+    cmds.setToolTo(cage_creator_ctx)
 
 
 def _display_options(*args, **kwargs):  # pylint: disable=unused-argument
     cmds.confirmDialog(
         message="This is not yet implemented, sowwy :(",
-        button=["okiu"]
+        button=["Okiu"]
     )

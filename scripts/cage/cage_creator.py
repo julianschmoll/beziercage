@@ -299,12 +299,22 @@ class CageCreator:
 
     def create(self):
         """Creates the cage in Maya using the stored points and patches."""
+        if not self.points:
+            LOGGER.warning("No points in the cage to create.")
+            return
         LOGGER.info("Creating cage with the following data:")
         LOGGER.info(f"Points: {len(self.points)}")
         LOGGER.info(f"Patches: {len(self.patches_controls)}")
         meshes = [point.mesh for point in self.points]
         deformer = f"{self.cage_name}_deformer"
 
+        if not cmds.pluginInfo("cage", query=True, loaded=True):
+            LOGGER.info("Loading bezierCage plugin.")
+            try:
+                cmds.loadPlugin("cage")
+            except RuntimeError as e:
+                LOGGER.error(f"Failed to load cage plugin: {e}")
+                return
 
         if not cmds.objExists(deformer):
             LOGGER.info(f"Creating deformer {deformer} for meshes: {meshes}")

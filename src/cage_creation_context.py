@@ -9,8 +9,10 @@ from maya import OpenMayaUI
 
 from maya import cmds
 
-
-from cage.cage_creator import CageCreator
+try:
+    from cage.cage_creator import CageCreator
+except ImportError:
+    CageCreator = None
 
 kRadiusPressedCommandName = "CageMergeRadius"
 kRadiusReleasedCommandName = "CageMergeRadiusReleased"
@@ -39,7 +41,6 @@ class CageCreationContext(omui.MPxContext):
         self.original_b_released_command = None
         self.job_ids = []
         self.name = name
-        print(name)
 
     def toolOnSetup(self, event):
         cmds.undoInfo(openChunk=True)
@@ -198,7 +199,8 @@ class CageCreationContextCmd(omui.MPxContextCommand):
 
     def makeObj(self):
         argParser = self.parser()
-        self.cage_name = argParser.flagArgumentString("-name", 0)
+        if argParser.isFlagSet("-name"):
+            self.cage_name = argParser.flagArgumentString("-name", 0)
         if self.cage_name:
             if self.cage_name in self.cage_creators:
                 cage_creator = self.cage_creators[self.cage_name]
@@ -265,9 +267,6 @@ def get_viewport_zoom():
 
     zoom_x = view_width / (2 * horizontal_fov)
     zoom_y = view_height / (2 * vertical_fov)
-
-    print(f"Viewport Zoom (X): {zoom_x}")
-    print(f"Viewport Zoom (Y): {zoom_y}")
 
     return zoom_x, zoom_y
 
@@ -449,7 +448,17 @@ def rotation_matrix_from_normal(normal, up_vector=OpenMaya.MVector(0.0, 1.0, 0.0
 
 
 def initializePlugin(plugin):
-    plugin_fn = om.MFnPlugin(plugin)
+    plugin_fn = om.MFnPlugin(plugin, "Julian Schmoll", "1.0", "Any")
+    if not CageCreator:
+        om.MGlobal.displayError("CageCreator module is not available. Please make sure plugin is loaded correctly.")
+        return
+
+    if om.MGlobal.mayaState() != om.MGlobal.kBatch:
+        try:
+            import cage.menu
+            cage.menu.create()
+        except:
+            om.MGlobal.displayWarning("Could not add cage Menu")
 
     try:
         plugin_fn.registerContextCommand(CageCreationContextCmd.COMMAND_NAME,
@@ -461,6 +470,13 @@ def initializePlugin(plugin):
 
 def uninitializePlugin(plugin):
     plugin_fn = om.MFnPlugin(plugin)
+
+    if om.MGlobal.mayaState() != om.MGlobal.kBatch:
+        try:
+            import cage.menu
+            cage.menu.destroy()
+        except:
+            om.MGlobal.displayWarning("Could not remove cage Menu")
 
     try:
         plugin_fn.deregisterContextCommand(CageCreationContextCmd.COMMAND_NAME)
