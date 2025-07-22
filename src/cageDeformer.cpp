@@ -45,14 +45,14 @@ MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
 
-bezierCage::bezierCage(): m_taskData() {
+bezierCage::bezierCage(): MDeformTaskData() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
     // Fallback to a single thread if the number of threads cannot be determined
     if (kTaskCount == 0) { kTaskCount = 1; }
 #if DEBUG_LOG
     MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
 #endif
-    m_threadData.resize(kTaskCount);
+    MDeformThreadData.resize(kTaskCount);
 }
 
 MStatus bezierCage::initialize() {
@@ -229,39 +229,39 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     }
 
     // prepare thread tasks
-    m_taskData.numVerts = points.length();
-    m_taskData.pPoints = &points;
-    m_taskData.pBindDist = &bindDist;
-    m_taskData.pWeights = &weights;
-    m_taskData.envelope = fEnvelope;
-    m_taskData.thresh = thresh;
-    m_taskData.pControlPoints = &controlPoints;
-    m_taskData.pPreControlPoints = &preControlPoints;
-    m_taskData.pPatchIdx = &patchIdx;
-    m_taskData.pU = &u;
-    m_taskData.pV = &v;
+    MDeformTaskData.numVerts = points.length();
+    MDeformTaskData.points = &points;
+    MDeformTaskData.bindDistance = &bindDist;
+    MDeformTaskData.weights = &weights;
+    MDeformTaskData.envelope = fEnvelope;
+    MDeformTaskData.distanceTreshold = thresh;
+    MDeformTaskData.controlPoints = &controlPoints;
+    MDeformTaskData.preControlPoints = &preControlPoints;
+    MDeformTaskData.patchIndex = &patchIdx;
+    MDeformTaskData.u = &u;
+    MDeformTaskData.v = &v;
 
     CreateThreadData();
-    MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&m_threadData[0]));
+    MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&MDeformThreadData[0]));
     geometryIterator.setAllPositions(points);
 
     return status;
 }
 
 void bezierCage::CreateThreadData() {
-    int taskCount = static_cast<int>(m_threadData.size());
-    unsigned int taskLength = (m_taskData.numVerts + taskCount - 1) / taskCount;
+    int taskCount = static_cast<int>(MDeformThreadData.size());
+    unsigned int taskLength = (MDeformTaskData.numVerts + taskCount - 1) / taskCount;
     unsigned int start = 0, end = taskLength;
     for (int i = 0; i < taskCount; ++i) {
-        if (i == taskCount - 1) { end = m_taskData.numVerts; }
-        m_threadData[i] = {start, end, static_cast<unsigned int>(taskCount), &m_taskData};
+        if (i == taskCount - 1) { end = MDeformTaskData.numVerts; }
+        MDeformThreadData[i] = {start, end, static_cast<unsigned int>(taskCount), &MDeformTaskData};
         start += taskLength;
         end += taskLength;
     }
 }
 
 void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
-    ThreadData *pThreadData = static_cast<ThreadData *>(pData);
+    deformThreadData *pThreadData = static_cast<deformThreadData *>(pData);
     int taskCount = pThreadData[0].numTasks;
     for (int i = 0; i < taskCount; ++i) {
         MThreadPool::createTask(ThreadEvaluate, static_cast<void *>(&pThreadData[i]), pRoot);
@@ -270,23 +270,23 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
 }
 
 MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
-    ThreadData *pThreadData = static_cast<ThreadData *>(pParam);
-    TaskData *pData = pThreadData->pData;
-    auto &points = *pData->pPoints;
-    const auto &bindDist = *pData->pBindDist;
-    const auto &weights = *pData->pWeights;
-    const auto &patchIdx = *pData->pPatchIdx;
-    const auto &u = *pData->pU;
-    const auto &v = *pData->pV;
-    const auto &controlPoints = *pData->pControlPoints;
-    const auto &preControlPoints = *pData->pPreControlPoints;
+    const auto *threadData = static_cast<deformThreadData *>(pParam);
+    deformTaskData *data = threadData->data;
+    auto &points = *data->points;
+    const auto &bindDist = *data->bindDistance;
+    const auto &weights = *data->weights;
+    const auto &patchIdx = *data->patchIndex;
+    const auto &u = *data->u;
+    const auto &v = *data->v;
+    const auto &controlPoints = *data->controlPoints;
+    const auto &preControlPoints = *data->preControlPoints;
 
-    for (unsigned int i = pThreadData->start; i < pThreadData->end; ++i) {
-        if (bindDist[i] < pData->thresh) {
+    for (unsigned int i = threadData->start; i < threadData->end; ++i) {
+        if (bindDist[i] < data->distanceTreshold) {
             MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx[i]], u[i], v[i]);
             MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx[i]], u[i], v[i]);
             MVector deformVec = postDeformPoint - preDeformPoint;
-            points[i] += deformVec * weights[i] * pData->envelope;
+            points[i] += deformVec * weights[i] * data->envelope;
         }
     }
     return 0;

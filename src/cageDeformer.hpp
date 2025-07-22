@@ -15,23 +15,23 @@
 #include <maya/MPointArray.h>
 
 
-struct TaskData {
+struct deformTaskData {
     unsigned int numVerts;
-    MPointArray *pPoints;
-    const std::vector<float> *pBindDist;
-    const std::vector<float> *pWeights;
+    MPointArray *points;
+    const std::vector<float> *bindDistance;
+    const std::vector<float> *weights;
     float envelope;
-    float thresh;
-    const std::vector<std::vector<MPoint> > *pControlPoints;
-    const std::vector<std::vector<MPoint> > *pPreControlPoints;
-    const std::vector<unsigned int> *pPatchIdx;
-    const std::vector<float> *pU;
-    const std::vector<float> *pV;
+    float distanceTreshold;
+    const std::vector<std::vector<MPoint> > *controlPoints;
+    const std::vector<std::vector<MPoint> > *preControlPoints;
+    const std::vector<unsigned int> *patchIndex;
+    const std::vector<float> *u;
+    const std::vector<float> *v;
 };
 
-struct ThreadData {
+struct deformThreadData {
     unsigned int start, end, numTasks;
-    TaskData *pData;
+    deformTaskData *data;
 };
 
 class bezierCage : public MPxDeformerNode {
@@ -65,8 +65,8 @@ public:
     static MObject aGeometryBindData;
     static MObject aDirty;
 
-    std::vector<ThreadData> m_threadData;
-    TaskData m_taskData;
+    std::vector<deformThreadData> MDeformThreadData;
+    deformTaskData MDeformTaskData;
 
 private:
     /**
