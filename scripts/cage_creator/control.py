@@ -91,7 +91,7 @@ def create(ctl_type, name="ctl", size=.4, line_width=1.0, color=[1, 0, 0], paren
     json_dir = os.path.join(script_dir, "control_definitions")
     json_path = os.path.join(json_dir, f"{ctl_type}.json")
 
-    if not json_path:
+    if not os.path.exists(json_path):
         raise ValueError(f"Control type '{ctl_type}' not found in {json_dir}")
 
     LOGGER.info(f"Creating {ctl_type} control from json")
