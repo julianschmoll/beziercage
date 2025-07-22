@@ -187,16 +187,10 @@ class CageCreationContext(omui.MPxContext):
     def completeAction(self):
         self.cage_creator.create()
 
-    def deleteAction(self):
-        self.cage_creator.remove_last_point()
-
-    def abortAction(self):
-        print("abort action")
-
 
 class CageCreationContextCmd(omui.MPxContextCommand):
     COMMAND_NAME = "CageCreatorContext"
-    cage_creators = {}  # Dictionary zur Speicherung von CageCreator-Objekten nach Namen
+    cage_creators = {}
     cage_name = None
 
     def __init__(self):

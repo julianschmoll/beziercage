@@ -1,5 +1,4 @@
 import json
-from maya import OpenMaya
 import os
 import logging
 from maya import cmds
