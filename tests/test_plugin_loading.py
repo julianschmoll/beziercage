@@ -10,7 +10,7 @@ except ModuleNotFoundError:
     cage = None  # pylint: disable=invalid-name
 
 
-PLUGIN = "cage.mll"
+PLUGIN = "cage"
 
 
 class TestPluginLoading(unittest.TestCase):

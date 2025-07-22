@@ -64,7 +64,7 @@ CONTROL_PATCHES = [
         "test_cage_anchor_8_ctl",
     ]
 ]
-PLUGINS = ["cage.mll", "cage_creation_context.py"]
+PLUGINS = ["cage", "cage_creation_context"]
 
 
 class TestBezierCage(unittest.TestCase):
