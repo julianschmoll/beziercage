@@ -5,6 +5,7 @@
 
 #include <maya/MFnPlugin.h>
 
+
 MStatus initializePlugin(MObject obj) {
   MStatus status;
   MFnPlugin plugin(obj, "Julian Schmoll", "1.0", "Any");
@@ -18,12 +19,6 @@ MStatus initializePlugin(MObject obj) {
 
   status = plugin.registerNode(offsetPin::typeName, offsetPin::id, offsetPin::creator, offsetPin::initialize);
   CHECK_MSTATUS_AND_RETURN_IT(status);
-
-  if (MGlobal::mayaState() == MGlobal::kInteractive) {
-    MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
-    MGlobal::executePythonCommandOnIdle(
-      "try:import cage.menu;cage.menu.create()\nexcept:MGlobal.displayWarning('Could not add cage Menu')");
-  }
 
   MThreadPool::init();
 
@@ -44,12 +39,6 @@ MStatus uninitializePlugin(MObject obj) {
 
   status = plugin.deregisterNode(offsetPin::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
-
-  if (MGlobal::mayaState() == MGlobal::kInteractive) {
-    MGlobal::executePythonCommandOnIdle("from maya.api.OpenMaya import MGlobal");
-    MGlobal::executePythonCommandOnIdle(
-      "try:import cage.menu;cage.menu.destroy()\nexcept:MGlobal.displayWarning('Could not remove cage Menu')");
-  }
 
   MThreadPool::release();
 
