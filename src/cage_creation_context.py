@@ -432,8 +432,12 @@ def rotation_matrix_from_normal(normal, up_vector=OpenMaya.MVector(0.0, 1.0, 0.0
         OpenMaya.MMatrix: The rotation matrix aligning the normal with the up vector.
     """
     if abs(normal * up_vector) > 0.999:
-        print("up vector is parallel to normal")
-        up_vector = OpenMaya.MVector(1.0, 0.0, 0.0)
+        # If up_vector is parallel to normal, choose a different axis.
+        # The world X-axis is a common choice, but check if it's also parallel.
+        if abs(normal.x) > 0.999:
+            up_vector = OpenMaya.MVector(0.0, 1.0, 0.0)  # Use Y-axis
+        else:
+            up_vector = OpenMaya.MVector(1.0, 0.0, 0.0)  # Use X-axis
 
     tangent = (up_vector ^ normal).normal()
     bitangent = (normal ^ tangent).normal()
