@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import sys
 import unittest
+import logging
 
 from maya import cmds
 import maya.standalone
@@ -29,18 +30,15 @@ def _setup_environment():
     root_path = sys.argv[1]
     version = sys.argv[2]
 
-    build_path = Path(root_path, "build", version, "cage")
-    plug_in_path = Path(build_path, "plug-ins")
-    scripts_path = Path(build_path, "scripts")
+    module_path = Path(root_path, "build", version)
 
-    if not build_path.exists():
+    if not module_path.exists():
         print("Please build the Plugin before testing!")
-        print(f"Expected build path was: {build_path}")
+        print(f"Expected build path was: {module_path}")
         sys.exit(1)
 
-    os.environ["MAYA_PLUG_IN_PATH"] = str(plug_in_path)
-    sys.path.append(str(scripts_path))
-    sys.path.append(root_path)
+    os.environ["MAYA_MODULE_PATH"] = str(module_path)
+    os.environ["MTOA_STARTUP_LOG_VERBOSITY"] = str(0)
 
     maya.app.commands.processCommandList = _set_option_vars
     maya.standalone.initialize(name="python")
