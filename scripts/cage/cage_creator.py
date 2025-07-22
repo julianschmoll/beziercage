@@ -3,9 +3,9 @@ from maya import OpenMaya
 from maya import cmds
 import logging
 
-from bezier_cage_playground.scripts.cage_creator.bezier_control import BezierControl
-from bezier_cage_playground.scripts.cage_creator import curve_from_view
-from bezier_cage_playground.scripts.cage_creator import cage_utils
+from cage.bezier_control import BezierControl
+from cage import curve_from_view
+from cage import cage_utils
 
 
 LOGGER = logging.getLogger("Cage Creator")

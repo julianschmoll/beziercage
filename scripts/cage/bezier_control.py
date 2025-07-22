@@ -1,7 +1,7 @@
 from maya import cmds
 
-from bezier_cage_playground.scripts.cage_creator import control
-from bezier_cage_playground.scripts.cage_creator import cage_utils
+from cage import control
+from cage import cage_utils
 
 
 class BezierControl:

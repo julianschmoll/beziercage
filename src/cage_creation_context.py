@@ -10,7 +10,7 @@ from maya import OpenMayaUI
 from maya import cmds
 
 
-from bezier_cage_playground.scripts.cage_creator.cage_creator import CageCreator
+from cage.cage_creator import CageCreator
 
 kRadiusPressedCommandName = "CageMergeRadius"
 kRadiusReleasedCommandName = "CageMergeRadiusReleased"
