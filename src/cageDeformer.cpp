@@ -26,8 +26,8 @@
 #include <vector>
 
 
-// This ID is registered with Autodesk and should not clash with other nodes.
-MTypeId bezierCage::id(0x0013f8c0);
+// This ID is registered with Autodesk (https://adndata.autodesk.io/maya).
+MTypeId bezierCage::id(0x0013f8c1);
 
 const char *bezierCage::typeName = "bezierCage";
 
@@ -65,7 +65,6 @@ MStatus bezierCage::initialize() {
     aDirty = fAttr.create("bound", "bound", MFnNumericData::kBoolean, true);
     fAttr.setArray(true);
     fAttr.setStorable(true);
-    fAttr.setUsesArrayDataBuilder(true);
     addAttribute(aDirty);
 
     // Message Attribute

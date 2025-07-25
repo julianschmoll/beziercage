@@ -20,7 +20,8 @@
 #include <limits>
 #include <memory>
 
-MTypeId offsetPin::id(0x001226C2);
+// This ID is registered with Autodesk (https://adndata.autodesk.io/maya).
+MTypeId offsetPin::id(0x0013f8c0);
 const char *offsetPin::typeName = "offsetPin";
 
 MObject offsetPin::aOutputMatrix;
@@ -415,6 +416,7 @@ MMatrix offsetPin::calculateOutputMatrix(
     if (offsetVector) {
         // Transform offset vector to local space of the triangle
         MVector offset = (*offsetVector) * outputMatrix;
+
         outputMatrix[3][0] = interpolatedPosition.x + offset.x;
         outputMatrix[3][1] = interpolatedPosition.y + offset.y;
         outputMatrix[3][2] = interpolatedPosition.z + offset.z;
@@ -422,6 +424,7 @@ MMatrix offsetPin::calculateOutputMatrix(
         outputMatrix[3][0] = interpolatedPosition.x;
         outputMatrix[3][1] = interpolatedPosition.y;
         outputMatrix[3][2] = interpolatedPosition.z;
+
     }
     return outputMatrix;
 }

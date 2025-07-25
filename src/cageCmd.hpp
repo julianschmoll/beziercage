@@ -33,9 +33,9 @@ class cageCmd : public MPxCommand {
 public:
     cageCmd();
 
-    static void *creator();
+    enum CommandMode { kCommandCreate, kCommandHelp, kCommandRebind };
 
-    static MStatus initialize();
+    static void *creator();
 
     virtual MStatus doIt(const MArgList &);
 
@@ -52,6 +52,8 @@ public:
     const static char *kNameFlagLong;
     const static char *kHelpFlagShort;
     const static char *kHelpFlagLong;
+    const static char *kRebindFlagShort;
+    const static char *kRebindFlagLong;
 
     static MTypeId id;
 
@@ -63,9 +65,9 @@ private:
     MStatus GetGeometryPaths();
 
     MString name_;
-    MSelectionList selectionList_; /**< Selected command input nodes. */
-    MDagPathArray drivenGeometry_;
+    MSelectionList currentSelection;
     MDGModifier dgMod_;
-    MObject oDeformerNode_;
-    MDagPathArray pathDriven_;
+    MObject oCageNode;
+    MDagPathArray deformedDagPaths;
+    CommandMode executedCommand;
 };
