@@ -57,8 +57,15 @@ MStatus cageCmd::doIt(const MArgList &args) {
     status = GatherCommandArguments(args);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    status = GetGeometryPaths();
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+#if DEBUG_LOG
+    MGlobal::displayInfo("Gathered command arguments successfully.");
+#endif
+
+    GetGeometryPaths();
+
+#if DEBUG_LOG
+    MGlobal::displayInfo("Gathered geometry paths successfully.");
+#endif
 
     if (deformedDagPaths.length() == 0 && executedCommand == kCommandCreate) {
         MGlobal::displayError("cage requires at least 1 shape(s) to be specified or selected;  found 0.");
@@ -140,6 +147,11 @@ MStatus cageCmd::GatherCommandArguments(const MArgList &args) {
 MStatus cageCmd::redoIt() {
     MStatus status;
 
+#if DEBUG_LOG
+    MGlobal::displayInfo("Executing cage command");
+#endif
+
+
     if (executedCommand == kCommandHelp) {
         DisplayHelp();
         return MS::kSuccess;
@@ -147,14 +159,13 @@ MStatus cageCmd::redoIt() {
     if (executedCommand == kCommandCreate) {
         status = dgMod_.doIt();
         CHECK_MSTATUS_AND_RETURN_IT(status);
+        status = GetGeometryPaths();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        status = GetLatestDeformerNode();
+        MFnDependencyNode fnDeformerNode(oCageNode, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        setResult(fnDeformerNode.name());
     }
-
-    status = GetGeometryPaths();
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    status = GetLatestDeformerNode();
-    MFnDependencyNode fnDeformerNode(oCageNode, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     if (executedCommand == kCommandRebind) {
 #if DEBUG_LOG
@@ -165,11 +176,10 @@ MStatus cageCmd::redoIt() {
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MPlug dirtyPlug(deformerObj, bezierCage::aDirty);
         status = dirtyPlug.setBool(true);
-        CHECK_MSTATUS_AND_RETURN_IT(status)
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         MGlobal::executeCommand("dgdirty " + fnDep.name());
+        setResult("Rebound " + fnDep.name());
     }
-
-    setResult(fnDeformerNode.name());
     return MS::kSuccess;
 }
 

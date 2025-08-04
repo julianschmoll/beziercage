@@ -304,7 +304,7 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
         return status;
     }
 
-    auto controlPoints = getControlPoints(dataBlock);
+    auto controlPoints = getControlPoints(dataBlock, true);
     if (controlPoints.empty()) {
 #if ERROR_LOG
         MGlobal::displayError("No valid NURBS surface connected to the deformer.");
