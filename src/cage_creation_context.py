@@ -471,7 +471,7 @@ def initializePlugin(plugin):
 def uninitializePlugin(plugin):
     plugin_fn = om.MFnPlugin(plugin)
 
-    if om.MGlobal.mayaState() == om.MGlobal.kInteractive :
+    if om.MGlobal.mayaState() == om.MGlobal.kInteractive:
         try:
             import cage.menu
             cage.menu.destroy()
