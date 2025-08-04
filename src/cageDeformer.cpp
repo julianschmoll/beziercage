@@ -62,8 +62,7 @@ MStatus bezierCage::initialize() {
     MFnMessageAttribute meAttr;
 
     // Dirty Attribute
-    aDirty = fAttr.create("bound", "bound", MFnNumericData::kBoolean, true);
-    fAttr.setArray(true);
+    aDirty = fAttr.create("dirty", "dirty", MFnNumericData::kBoolean, true);
     fAttr.setStorable(true);
     addAttribute(aDirty);
 
@@ -295,13 +294,12 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
                          unsigned int geometryIndex) {
     MStatus status;
 
-    MArrayDataHandle dirtyArrayHandle = dataBlock.inputArrayValue(aDirty, &status);
+    MDataHandle dirtyHandle = dataBlock.inputValue(aDirty, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    status = dirtyArrayHandle.jumpToElement(geometryIndex);
-    if (status == MS::kSuccess && !dirtyArrayHandle.inputValue().asBool()) {
+    if (!dirtyHandle.asBool()) {
 #if DEBUG_LOG
-        MGlobal::displayInfo(MString("Geometry at index ") + MString(std::to_string(geometryIndex).c_str()) + " is already bound.");
+        MGlobal::displayInfo("Geometry already bound, skipping binding.");
 #endif
         return status;
     }
@@ -371,11 +369,8 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
     geometryBindDataHandle.set(geometryBindDataBuilder);
     geometryBindDataHandle.setAllClean();
 
-    MArrayDataBuilder dirtyBuilder = dirtyArrayHandle.builder(&status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    dirtyBuilder.addElement(geometryIndex).setBool(false);
-    dirtyArrayHandle.set(dirtyBuilder);
-    dirtyArrayHandle.setAllClean();
+    dirtyHandle.setBool(false);
+    dirtyHandle.setClean();
 
     return MS::kSuccess;
 }

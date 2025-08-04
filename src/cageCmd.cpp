@@ -157,15 +157,15 @@ MStatus cageCmd::redoIt() {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     if (executedCommand == kCommandRebind) {
+#if DEBUG_LOG
+        MGlobal::displayInfo("Rebinding deformer :)");
+#endif
         MObject deformerObj = oCageNode;
         MFnDependencyNode fnDep(deformerObj, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
-
         MPlug dirtyPlug(deformerObj, bezierCage::aDirty);
-        do {
-
-        } while (dirtyPlug.next() == MS::kSuccess);
-
+        status = dirtyPlug.setBool(true);
+        CHECK_MSTATUS_AND_RETURN_IT(status)
         MGlobal::executeCommand("dgdirty " + fnDep.name());
     }
 
