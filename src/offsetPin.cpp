@@ -87,7 +87,7 @@ MStatus offsetPin::initialize() {
     cAttrBind.addChild(aBindGeomIndex);
 
     status = addAttribute(aBindData);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Geometry Lookup Compound ---
     aGeometryLookup = cAttrGeom.create("geometryLookup", "geomLookup");
@@ -103,7 +103,7 @@ MStatus offsetPin::initialize() {
     cAttrGeom.addChild(aFaceVertices);
 
     status = addAttribute(aGeometryLookup);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Output Matrix ---
     aOutputMatrix = mAttr.create("outputMatrix", "outMat");
@@ -114,7 +114,7 @@ MStatus offsetPin::initialize() {
     mAttr.setUsesArrayDataBuilder(true);
 
     status = addAttribute(aOutputMatrix);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Input Matrix ---
     aInputMatrix = mAttr.create("inputMatrix", "inMat");
@@ -124,7 +124,7 @@ MStatus offsetPin::initialize() {
     mAttr.setWritable(true);
 
     status = addAttribute(aInputMatrix);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Input Geometry ---
     aInputGeometry = tAttr.create("inputGeometry", "inGeom", MFnData::kMesh);
@@ -134,7 +134,7 @@ MStatus offsetPin::initialize() {
     tAttr.setReadable(false);
 
     status = addAttribute(aInputGeometry);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Original Geometry ---
     aOriginalGeometry = tAttr.create("originalGeometry", "origGeom", MFnData::kMesh);
@@ -144,7 +144,7 @@ MStatus offsetPin::initialize() {
     tAttr.setReadable(false);
 
     status = addAttribute(aOriginalGeometry);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Attribute Dependencies ---
     attributeAffects(aInputMatrix, aOutputMatrix);
@@ -266,16 +266,16 @@ MStatus offsetPin::getTriangleVertexIndices(
     return MS::kSuccess;
 }
 
-MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
+MStatus offsetPin::GetInputGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
     MStatus status;
     MFnDependencyNode fnNode(thisMObject(), &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug origGeomPlug = fnNode.findPlug(aOriginalGeometry, false, &status);
-    if (status != MS::kSuccess) return status;
+    MPlug inputGeomPlug = fnNode.findPlug(aInputGeometry, false, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug elemPlug = origGeomPlug.elementByLogicalIndex(geomIndex, &status);
-    if (status != MS::kSuccess) return status;
+    MPlug elemPlug = inputGeomPlug.elementByLogicalIndex(geomIndex, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MPlugArray connections;
     elemPlug.connectedTo(connections, true, false, &status);
@@ -285,7 +285,7 @@ MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dag
     if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
 
     MFnDagNode dagNode(inputNode, &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     status = dagNode.getPath(dagPath);
     return status;
@@ -327,7 +327,9 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         // this is nasty as we don't want to access other dag objects from
         // within the node but this way we can get the correct triangle id
         // as bind is not called regularly this is the best way to do it
-        stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
+
+        // ToDo: This needs to create an intermediate object while binding :) so we use this for the mesh intersector.
+        stat = GetInputGeomPathFromPlug(geomIndex, dagPath);
         if (stat != MS::kSuccess) continue;
 
         worldMatrix = dagPath.inclusiveMatrix();

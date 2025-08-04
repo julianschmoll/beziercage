@@ -96,7 +96,7 @@ private:
     * @param[out] dagPath The MDagPath.
     * @return MStatus indicating success or failure.
     */
-    MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
+    MStatus GetInputGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
 
     /**
      * Calculates the output matrix based on barycentric coordinates and triangle data.
