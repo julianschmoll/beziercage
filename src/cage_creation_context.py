@@ -453,7 +453,7 @@ def initializePlugin(plugin):
         om.MGlobal.displayError("CageCreator module is not available. Please make sure plugin is loaded correctly.")
         return
 
-    if om.MGlobal.mayaState() == om.MGlobal.kInteractive :
+    if om.MGlobal.mayaState() == om.MGlobal.kInteractive:
         try:
             import cage.menu
             cage.menu.create()
