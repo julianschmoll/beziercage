@@ -91,7 +91,7 @@ class CageCreationContext(omui.MPxContext):
         cmds.hotkey(k="b", alt=False, ctl=False, rn=kRadiusReleasedCommand)
 
         self.cage_creator.offset_distance = self.offset_distance
-
+        self.cage_creator.update_state()
         self.undo_redo_script_job()
 
     def toolOffCleanup(self):

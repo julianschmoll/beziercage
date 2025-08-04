@@ -15,6 +15,7 @@ class BezierControl:
         self.handle_group = None
         self.anchor = self._create_anchor_control()
         self.mesh = mesh.fullPathName() if hasattr(mesh, 'fullPathName') else mesh
+        self.valid = True
 
     def _create_anchor_control(self):
         """Creates the anchor control for the Bézier curve."""
@@ -69,6 +70,9 @@ class BezierControl:
             color=[0.364, 0.014, 1.0]
         )
         matrix_list = [matrix(i, j) for i in range(4) for j in range(4)]
+        if not cmds.objExists(self.handle_group):
+            self.handle_group = cmds.group(empty=True, name=f"{self.name}_handles")
+            cmds.parent(self.handle_group, self.name)
         cmds.parent(handle_control["null"], self.handle_group)
         cmds.xform(handle_control["srt"], ws=True, matrix=matrix_list)
 

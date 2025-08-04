@@ -121,20 +121,23 @@ class CageCreator:
             else:
                 raise RuntimeError("Patch construction went wrong.")
 
-        self.patches_controls.append([
-            clockwise_patch_controls[0],
-            clockwise_patch_controls[1],
-            clockwise_patch_controls[2],
-            clockwise_patch_controls[3],
-            clockwise_patch_controls[11],
-            clockwise_patch_controls[4],
-            clockwise_patch_controls[10],
-            clockwise_patch_controls[5],
-            clockwise_patch_controls[9],
-            clockwise_patch_controls[8],
-            clockwise_patch_controls[7],
-            clockwise_patch_controls[6],
-        ])
+        self.patches_controls.append({
+            "points": point_indices[:],
+            "controls": [
+                clockwise_patch_controls[0],
+                clockwise_patch_controls[1],
+                clockwise_patch_controls[2],
+                clockwise_patch_controls[3],
+                clockwise_patch_controls[11],
+                clockwise_patch_controls[4],
+                clockwise_patch_controls[10],
+                clockwise_patch_controls[5],
+                clockwise_patch_controls[9],
+                clockwise_patch_controls[8],
+                clockwise_patch_controls[7],
+                clockwise_patch_controls[6],
+            ]
+        })
 
         self.current_patch_edge_tuples = []
 
@@ -259,6 +262,42 @@ class CageCreator:
         last_state = self.redo_stack.pop()
         self._restore_state(last_state)
 
+    def update_state(self):
+        """Updates data based on the Maya scene."""
+        LOGGER.info("Updating points in the cage...")
+        for point in self.points:
+            control = point.anchor["ctl"]
+            if cmds.objExists(control):
+                matrix = cmds.getAttr(f"{control}.worldMatrix[0]")
+                point.matrix = matrix
+                point.position = (matrix[12], matrix[13], matrix[14])
+                LOGGER.info(f"Updated point {point.name} at position {point.position}")
+            else:
+                point.valid = False
+                LOGGER.warning(f"Point {point.name} does not exist. Marking as invalid.")
+
+        self.current_patch_edge_tuples = []
+        self.current_patch_anchors = []
+        self.current_edge_anchors = []
+
+        valid_edges = []
+        for created_edge in self.edge_data:
+            edge_tuple = created_edge["edge"]
+            if self.points[edge_tuple[0]].valid and self.points[edge_tuple[1]].valid:
+                valid_edges.append(created_edge)
+            else:
+                LOGGER.info(f"Removing edge {edge_tuple} due to invalid points.")
+        self.edge_data = valid_edges
+
+        valid_patches = []
+        for patch in self.patches_controls:
+            is_valid = all(self.points[p_idx].valid for p_idx in patch["points"])
+            if is_valid:
+                valid_patches.append(patch)
+            else:
+                LOGGER.info(f"Removing patch with points {patch['points']} due to invalid points.")
+        self.patches_controls = valid_patches
+
     def add_point(self, matrix, mesh):
         """Adds a point to the cage, reusing if close to an existing point.
 
@@ -285,6 +324,8 @@ class CageCreator:
                 return
 
         for existing_index, existing_point in enumerate(self.points):
+            if not existing_point.valid:
+                continue
             point_position = OpenMaya.MPoint(*existing_point.position)
             if cage_utils.is_close(self.proximity_threshold, position, point_position):
                 self._create_edge_or_patch(existing_index)
@@ -305,8 +346,9 @@ class CageCreator:
         LOGGER.info("Creating cage with the following data:")
         LOGGER.info(f"Points: {len(self.points)}")
         LOGGER.info(f"Patches: {len(self.patches_controls)}")
-        meshes = [point.mesh for point in self.points]
+        meshes = [point.mesh for point in self.points if point.valid]
         deformer = f"{self.cage_name}_deformer"
+        needs_rebind = True
 
         if not cmds.pluginInfo("cage", query=True, loaded=True):
             LOGGER.info("Loading bezierCage plugin.")
@@ -318,9 +360,8 @@ class CageCreator:
 
         if not cmds.objExists(deformer):
             LOGGER.info(f"Creating deformer {deformer} for meshes: {meshes}")
-            deformer = cmds.deformer(
-                meshes, type="bezierCage", name=f"{self.cage_name}_deformer"
-            )[0]
+            deformer = cmds.deformCage(meshes, name=f"{self.cage_name}_deformer")
+            needs_rebind = False
 
         control_node = f"{self.cage_name}_control_node"
         if not cmds.objExists(control_node):
@@ -331,6 +372,8 @@ class CageCreator:
         connect_control_node(control_node, deformer)
 
         for anchor in self.points:
+            if not anchor.valid:
+                continue
             index = cage_utils.get_next_available_idx(f"{control_node}.inputMatrix")
             cmds.setAttr(
                 f"{control_node}.inputMatrix[{index}]",
@@ -343,8 +386,9 @@ class CageCreator:
                 force=True
             )
 
-        for patch_idx, patch in enumerate(self.patches_controls):
-            for point_idx, control in enumerate(patch):
+        for patch_idx, patch_data in enumerate(self.patches_controls):
+            patch_controls = patch_data["controls"]
+            for point_idx, control in enumerate(patch_controls):
                 LOGGER.info(
                     f"Connecting {control['ctl']} to patch {patch_idx} and point {point_idx}"
                 )
@@ -358,6 +402,8 @@ class CageCreator:
                     f"{deformer}.patchBindPreMatrices[{patch_idx}].bindPreMatrix[{point_idx}]",
                     force=True
                 )
+        if needs_rebind:
+            cmds.deformCage(rebind=deformer)
 
     def set_proximity_threshold(self, threshold):
         """Sets the proximity threshold for point reuse.
