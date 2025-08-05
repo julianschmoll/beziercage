@@ -226,6 +226,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         weights.push_back(weightVal);
     }
 
+    // return status;
+
     // prepare thread tasks
     MDeformTaskData.numVerts = points.length();
     MDeformTaskData.points = &points;
@@ -268,6 +270,7 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
 }
 
 MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
+    return 0;
     const auto *threadData = static_cast<deformThreadData *>(pParam);
     deformTaskData *data = threadData->data;
     auto &points = *data->points;
@@ -280,10 +283,23 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     const auto &preControlPoints = *data->preControlPoints;
 
     for (unsigned int i = threadData->start; i < threadData->end; ++i) {
+        if (i >= bindDist.size() || i >= weights.size() || i >= patchIdx.size() || i >= u.size() || i >= v.size() || i >= points.length()) {
+            // This should not happen, but we still check to avoid out-of-bounds access
+            continue;
+        }
         if (bindDist[i] < data->distanceTreshold) {
+#if DEBUG_LOG
+            MGlobal::displayInfo("Deforming vertex at index " + MString(std::to_string(i).c_str()));
+            MGlobal::displayInfo("Points length: " + points.length());
+            MGlobal::displayInfo("Patch index: " + MString(std::to_string(patchIdx[i]).c_str()));
+            MGlobal::displayInfo("U: " + MString(std::to_string(u[i]).c_str()) + ", V: " + MString(std::to_string(v[i]).c_str()));
+#endif
             MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx[i]], u[i], v[i]);
             MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx[i]], u[i], v[i]);
             MVector deformVec = postDeformPoint - preDeformPoint;
+#if DEBUG_LOG
+            MGlobal::displayInfo("Calculated deformation vector");
+#endif
             points[i] += deformVec * weights[i] * data->envelope;
         }
     }

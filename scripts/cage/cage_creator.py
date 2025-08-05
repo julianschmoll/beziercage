@@ -363,25 +363,25 @@ class CageCreator:
             deformer = cmds.deformCage(meshes, name=f"{self.cage_name}_deformer")
             needs_rebind = False
 
-        control_node = f"{self.cage_name}_control_node"
-        if not cmds.objExists(control_node):
-            control_node = cmds.createNode(
+        offset_pin = f"{self.cage_name}_control_node"
+        if not cmds.objExists(offset_pin):
+            offset_pin = cmds.createNode(
                 "offsetPin", name=f"{self.cage_name}_control_node"
             )
 
-        connect_control_node(control_node, deformer)
+        connect_control_node(offset_pin, deformer)
 
         for anchor in self.points:
             if not anchor.valid:
                 continue
-            index = cage_utils.get_next_available_idx(f"{control_node}.inputMatrix")
+            index = cage_utils.get_next_available_idx(f"{offset_pin}.inputMatrix")
             cmds.setAttr(
-                f"{control_node}.inputMatrix[{index}]",
+                f"{offset_pin}.inputMatrix[{index}]",
                 *anchor.matrix,
                 type="matrix"
             )
             cmds.connectAttr(
-                f"{control_node}.outputMatrix[{index}]",
+                f"{offset_pin}.outputMatrix[{index}]",
                 f"{anchor.name}_srt.offsetParentMatrix",
                 force=True
             )

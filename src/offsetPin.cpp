@@ -155,6 +155,7 @@ MStatus offsetPin::initialize() {
 }
 
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
+    return MS::kSuccess; // Early exit if no computation is needed
 #if DEBUG_LOG
 MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
 #endif
