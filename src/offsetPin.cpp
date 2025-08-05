@@ -266,7 +266,7 @@ MStatus offsetPin::getTriangleVertexIndices(
     return MS::kSuccess;
 }
 
-MStatus offsetPin::GetInputGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
+MStatus offsetPin::CreateBindGeom(unsigned int geomIndex, MDagPath &dagPath) {
     MStatus status;
     MFnDependencyNode fnNode(thisMObject(), &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -279,17 +279,72 @@ MStatus offsetPin::GetInputGeomPathFromPlug(unsigned int geomIndex, MDagPath &da
 
     MPlugArray connections;
     elemPlug.connectedTo(connections, true, false, &status);
-    if (status != MS::kSuccess || connections.length() == 0) return MS::kFailure;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    if (connections.length() == 0) return MS::kFailure;
 
-    MObject inputNode = connections[0].node();
-    if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
+    MPlug connectedPlug = connections[0];
+    MObject connectedObj = connectedPlug.node();
 
-    MFnDagNode dagNode(inputNode, &status);
+    MPointArray points;
+    MIntArray polygonCounts, polygonConnects;
+
+    if (connectedObj.hasFn(MFn::kMesh)) {
+        MFnMesh meshFn(connectedObj, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        meshFn.getPoints(points, MSpace::kObject);
+        meshFn.getVertices(polygonCounts, polygonConnects);
+    } else if (connectedObj.hasFn(MFn::kMeshData)) {
+        MFnMeshData meshDataFn(connectedObj, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        MObject meshObj = meshDataFn.object();
+        MFnMesh meshFn(meshObj, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        meshFn.getPoints(points, MSpace::kObject);
+        meshFn.getVertices(polygonCounts, polygonConnects);
+    } else {
+        return MS::kFailure;
+    }
+
+    MTransformationMatrix sourceMatrix;
+    MDagPath sourceDagPath;
+    if (MDagPath::getAPathTo(connectedObj, sourceDagPath) == MS::kSuccess) {
+        if (sourceDagPath.node().hasFn(MFn::kMesh)) {
+            sourceDagPath.pop(); // go to transform
+            MFnTransform sourceTransform(sourceDagPath, &status);
+            if (status == MS::kSuccess) {
+                sourceMatrix = sourceTransform.transformation();
+            }
+        }
+    }
+
+    MFnTransform transformFn;
+    MObject transformObj = transformFn.create(MObject::kNullObj, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    status = dagNode.getPath(dagPath);
-    return status;
+    status = transformFn.set(sourceMatrix);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    MFnMesh newMeshFn;
+    MObject newMeshObj = newMeshFn.create(
+        points.length(),
+        polygonCounts.length(),
+        points,
+        polygonCounts,
+        polygonConnects,
+        transformObj,
+        &status
+    );
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    status = MDagPath::getAPathTo(newMeshObj, dagPath);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+
+    return MS::kSuccess;
 }
+
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 #if DEBUG_LOG
@@ -313,7 +368,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     MFloatArray bestBaryCoords;
     MPoint A, B, C, pointOnMeshPoint, closestPoint;
     MMatrix worldMatrix;
-    MStatus stat;
+    MStatus status;
     MObject meshObj;
     MPointOnMesh pointOnMesh;
 
@@ -327,15 +382,13 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         // this is nasty as we don't want to access other dag objects from
         // within the node but this way we can get the correct triangle id
         // as bind is not called regularly this is the best way to do it
-
-        // ToDo: This needs to create an intermediate object while binding :) so we use this for the mesh intersector.
-        stat = GetInputGeomPathFromPlug(geomIndex, dagPath);
-        if (stat != MS::kSuccess) continue;
+        status = CreateBindGeom(geomIndex, dagPath);
+        if (status != MS::kSuccess) continue;
 
         worldMatrix = dagPath.inclusiveMatrix();
         MMeshIntersector intersector;
-        stat = intersector.create(dagPath.node(), worldMatrix);
-        if (stat != MS::kSuccess) continue;
+        status = intersector.create(dagPath.node(), worldMatrix);
+        if (status != MS::kSuccess) continue;
 
         intersector.getClosestPoint(inputPoint, pointOnMesh);
 
@@ -360,6 +413,14 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
             GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
         }
+
+        // deletes the intermediate mesh object used for binding
+        if (IsShapeNode(dagPath)) {
+            dagPath.pop(); // go to transform
+        }
+        MString cmd = "delete " + dagPath.fullPathName();
+        MStatus status = MGlobal::executeCommand(cmd);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
     }
 
     MDataHandle bindElem = bindDataBuilder.addElement(index);
@@ -426,7 +487,6 @@ MMatrix offsetPin::calculateOutputMatrix(
         outputMatrix[3][0] = interpolatedPosition.x;
         outputMatrix[3][1] = interpolatedPosition.y;
         outputMatrix[3][2] = interpolatedPosition.z;
-
     }
     return outputMatrix;
 }
