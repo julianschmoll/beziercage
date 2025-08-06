@@ -226,6 +226,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         weights.push_back(weightVal);
     }
 
+    const MMatrix worldToLocalMatrix = localToWorldMatrix.inverse();
+
     // prepare thread tasks
     MDeformTaskData.numVerts = points.length();
     MDeformTaskData.points = &points;
@@ -239,7 +241,7 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     MDeformTaskData.u = &u;
     MDeformTaskData.v = &v;
     MDeformTaskData.localToWorldMatrix = &localToWorldMatrix;
-    MDeformTaskData.worldToLocalMatrix = &localToWorldMatrix.inverse();
+    MDeformTaskData.worldToLocalMatrix = &worldToLocalMatrix;
 
     CreateThreadData();
     MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&MDeformThreadData[0]));
