@@ -298,7 +298,7 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
         const auto weight = weights[i];
 
         // Skip calculation if we don't need to deform to be faster
-        if (bindDist[i] < data->distanceTreshold && envelope > 0.0f && weight > 0.0f) {
+        if (weight != 0.0f && bindDist[i] < data->distanceTreshold) {
 #if DEBUG_LOG
             MGlobal::displayInfo("Deforming vertex at index " + MString(std::to_string(i).c_str()));
             MGlobal::displayInfo("Points length: " + points.length());
