@@ -270,7 +270,6 @@ void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
 }
 
 MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
-    return 0;
     const auto *threadData = static_cast<deformThreadData *>(pParam);
     deformTaskData *data = threadData->data;
     auto &points = *data->points;
@@ -283,8 +282,11 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     const auto &preControlPoints = *data->preControlPoints;
 
     for (unsigned int i = threadData->start; i < threadData->end; ++i) {
-        if (i >= bindDist.size() || i >= weights.size() || i >= patchIdx.size() || i >= u.size() || i >= v.size() || i >= points.length()) {
-            // This should not happen, but we still check to avoid out-of-bounds access
+        if (i >= bindDist.size() || i >= weights.size() || i >= patchIdx.size() || i >= u.size() || i >= v.size() || i
+            >= points.length()) {
+#if ERROR_LOG
+            MGlobal::displayError("Index out of bounds in ThreadEvaluate: " + MString(std::to_string(i).c_str()));
+#endif
             continue;
         }
         if (bindDist[i] < data->distanceTreshold) {

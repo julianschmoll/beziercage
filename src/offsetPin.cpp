@@ -155,7 +155,6 @@ MStatus offsetPin::initialize() {
 }
 
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
-    return MS::kSuccess; // Early exit if no computation is needed
 #if DEBUG_LOG
 MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
 #endif
@@ -240,6 +239,9 @@ MStatus offsetPin::bind(MDataBlock &data) {
             if (matrix.isEquivalent(bindMatrix, 1e-6)) {
                 continue;
             }
+#if INFO_LOG
+            MGlobal::displayInfo(MString("Rebinding point at index: ") + MString(std::to_string(index).c_str()));
+#endif
         }
         calculateBinding(data, index);
     }
@@ -267,85 +269,30 @@ MStatus offsetPin::getTriangleVertexIndices(
     return MS::kSuccess;
 }
 
-MStatus offsetPin::CreateBindGeom(unsigned int geomIndex, MDagPath &dagPath) {
+MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
     MStatus status;
     MFnDependencyNode fnNode(thisMObject(), &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+    if (status != MS::kSuccess) return status;
 
-    MPlug inputGeomPlug = fnNode.findPlug(aInputGeometry, false, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MPlug origGeomPlug = fnNode.findPlug(aOriginalGeometry, false, &status);
+    if (status != MS::kSuccess) return status;
 
-    MPlug elemPlug = inputGeomPlug.elementByLogicalIndex(geomIndex, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MPlug elemPlug = origGeomPlug.elementByLogicalIndex(geomIndex, &status);
+    if (status != MS::kSuccess) return status;
 
     MPlugArray connections;
     elemPlug.connectedTo(connections, true, false, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    if (connections.length() == 0) return MS::kFailure;
+    if (status != MS::kSuccess || connections.length() == 0) return MS::kFailure;
 
-    MPlug connectedPlug = connections[0];
-    MObject connectedObj = connectedPlug.node();
+    MObject inputNode = connections[0].node();
+    if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
 
-    MPointArray points;
-    MIntArray polygonCounts, polygonConnects;
+    MFnDagNode dagNode(inputNode, &status);
+    if (status != MS::kSuccess) return status;
 
-    if (connectedObj.hasFn(MFn::kMesh)) {
-        MFnMesh meshFn(connectedObj, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        meshFn.getPoints(points, MSpace::kObject);
-        meshFn.getVertices(polygonCounts, polygonConnects);
-    } else if (connectedObj.hasFn(MFn::kMeshData)) {
-        MFnMeshData meshDataFn(connectedObj, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        MObject meshObj = meshDataFn.object();
-        MFnMesh meshFn(meshObj, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        meshFn.getPoints(points, MSpace::kObject);
-        meshFn.getVertices(polygonCounts, polygonConnects);
-    } else {
-        return MS::kFailure;
-    }
-
-    MTransformationMatrix sourceMatrix;
-    MDagPath sourceDagPath;
-    if (MDagPath::getAPathTo(connectedObj, sourceDagPath) == MS::kSuccess) {
-        if (sourceDagPath.node().hasFn(MFn::kMesh)) {
-            sourceDagPath.pop(); // go to transform
-            MFnTransform sourceTransform(sourceDagPath, &status);
-            if (status == MS::kSuccess) {
-                sourceMatrix = sourceTransform.transformation();
-            }
-        }
-    }
-
-    MFnTransform transformFn;
-    MObject transformObj = transformFn.create(MObject::kNullObj, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    status = transformFn.set(sourceMatrix);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    MFnMesh newMeshFn;
-    MObject newMeshObj = newMeshFn.create(
-        points.length(),
-        polygonCounts.length(),
-        points,
-        polygonCounts,
-        polygonConnects,
-        transformObj,
-        &status
-    );
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    status = MDagPath::getAPathTo(newMeshObj, dagPath);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    return MS::kSuccess;
+    status = dagNode.getPath(dagPath);
+    return status;
 }
-
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 #if DEBUG_LOG
@@ -383,7 +330,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         // this is nasty as we don't want to access other dag objects from
         // within the node but this way we can get the correct triangle id
         // as bind is not called regularly this is the best way to do it
-        status = CreateBindGeom(geomIndex, dagPath);
+        status = GetOrigGeomPathFromPlug(geomIndex, dagPath);
         if (status != MS::kSuccess) continue;
 
         worldMatrix = dagPath.inclusiveMatrix();
@@ -414,14 +361,6 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
             GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
         }
-
-        // deletes the intermediate mesh object used for binding
-        if (IsShapeNode(dagPath)) {
-            dagPath.pop(); // go to transform
-        }
-        MString cmd = "delete " + dagPath.fullPathName();
-        MStatus status = MGlobal::executeCommand(cmd);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
     }
 
     MDataHandle bindElem = bindDataBuilder.addElement(index);
@@ -480,7 +419,6 @@ MMatrix offsetPin::calculateOutputMatrix(
     if (offsetVector) {
         // Transform offset vector to local space of the triangle
         MVector offset = (*offsetVector) * outputMatrix;
-
         outputMatrix[3][0] = interpolatedPosition.x + offset.x;
         outputMatrix[3][1] = interpolatedPosition.y + offset.y;
         outputMatrix[3][2] = interpolatedPosition.z + offset.z;

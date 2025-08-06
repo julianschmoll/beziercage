@@ -91,12 +91,12 @@ private:
                                             MIntArray &vertexIndices);
 
     /**
-    * Creates an intermediate object at dagPath for binding.
+    * Retrieves the original geometry path from the plug.
     * @param[in] geomIndex Index of the geometry.
     * @param[out] dagPath The MDagPath.
     * @return MStatus indicating success or failure.
     */
-    MStatus CreateBindGeom(unsigned int geomIndex, MDagPath &dagPath);
+    MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
 
     /**
      * Calculates the output matrix based on barycentric coordinates and triangle data.
