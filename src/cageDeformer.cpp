@@ -226,8 +226,6 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         weights.push_back(weightVal);
     }
 
-    // return status;
-
     // prepare thread tasks
     MDeformTaskData.numVerts = points.length();
     MDeformTaskData.points = &points;

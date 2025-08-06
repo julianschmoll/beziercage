@@ -47,7 +47,7 @@ void *cageCmd::creator() {
 
 
 bool cageCmd::isUndoable() const {
-    return false;
+    return executedCommand == kCommandCreate;
 }
 
 
