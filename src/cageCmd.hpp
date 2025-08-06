@@ -33,12 +33,17 @@ class cageCmd : public MPxCommand {
 public:
     cageCmd();
 
-    static void *creator();
+    // Enum to figure out which command was executed
+    enum CommandMode { kCommandCreate, kCommandHelp, kCommandRebind };
 
-    static MStatus initialize();
+    static void *creator();
 
     virtual MStatus doIt(const MArgList &);
 
+    /**
+     * Gets the latest deformer node from the deformation chain of the first selected geometry.
+     * @return MStatus indicating success or failure.
+     */
     MStatus GetLatestDeformerNode();
 
     virtual MStatus undoIt();
@@ -52,20 +57,32 @@ public:
     const static char *kNameFlagLong;
     const static char *kHelpFlagShort;
     const static char *kHelpFlagLong;
+    const static char *kRebindFlagShort;
+    const static char *kRebindFlagLong;
 
     static MTypeId id;
 
     static MSyntax newSyntax();
 
 private:
+    /**
+     * Gathers command arguments from the provided argument list.
+     * @param args The argument list to gather arguments from.
+     * @return MStatus indicating success or failure.
+     */
     MStatus GatherCommandArguments(const MArgList &args);
 
+    /**
+     * Retrieves geometry paths from the current selection.
+     * This is used to find the geometry that the deformer will operate on.
+     * @return MStatus indicating success or failure.
+     */
     MStatus GetGeometryPaths();
 
     MString name_;
-    MSelectionList selectionList_; /**< Selected command input nodes. */
-    MDagPathArray drivenGeometry_;
+    MSelectionList currentSelection;
     MDGModifier dgMod_;
-    MObject oDeformerNode_;
-    MDagPathArray pathDriven_;
+    MObject oCageNode;
+    MDagPathArray deformedDagPaths;
+    CommandMode executedCommand;
 };

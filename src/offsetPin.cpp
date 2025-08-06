@@ -20,7 +20,8 @@
 #include <limits>
 #include <memory>
 
-MTypeId offsetPin::id(0x001226C2);
+// This ID is registered with Autodesk (https://adndata.autodesk.io/maya).
+MTypeId offsetPin::id(0x0013f8c0);
 const char *offsetPin::typeName = "offsetPin";
 
 MObject offsetPin::aOutputMatrix;
@@ -86,7 +87,7 @@ MStatus offsetPin::initialize() {
     cAttrBind.addChild(aBindGeomIndex);
 
     status = addAttribute(aBindData);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Geometry Lookup Compound ---
     aGeometryLookup = cAttrGeom.create("geometryLookup", "geomLookup");
@@ -102,7 +103,7 @@ MStatus offsetPin::initialize() {
     cAttrGeom.addChild(aFaceVertices);
 
     status = addAttribute(aGeometryLookup);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Output Matrix ---
     aOutputMatrix = mAttr.create("outputMatrix", "outMat");
@@ -113,7 +114,7 @@ MStatus offsetPin::initialize() {
     mAttr.setUsesArrayDataBuilder(true);
 
     status = addAttribute(aOutputMatrix);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Input Matrix ---
     aInputMatrix = mAttr.create("inputMatrix", "inMat");
@@ -123,7 +124,7 @@ MStatus offsetPin::initialize() {
     mAttr.setWritable(true);
 
     status = addAttribute(aInputMatrix);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Input Geometry ---
     aInputGeometry = tAttr.create("inputGeometry", "inGeom", MFnData::kMesh);
@@ -133,7 +134,7 @@ MStatus offsetPin::initialize() {
     tAttr.setReadable(false);
 
     status = addAttribute(aInputGeometry);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Original Geometry ---
     aOriginalGeometry = tAttr.create("originalGeometry", "origGeom", MFnData::kMesh);
@@ -143,7 +144,7 @@ MStatus offsetPin::initialize() {
     tAttr.setReadable(false);
 
     status = addAttribute(aOriginalGeometry);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // --- Attribute Dependencies ---
     attributeAffects(aInputMatrix, aOutputMatrix);
@@ -238,6 +239,9 @@ MStatus offsetPin::bind(MDataBlock &data) {
             if (matrix.isEquivalent(bindMatrix, 1e-6)) {
                 continue;
             }
+#if INFO_LOG
+            MGlobal::displayInfo(MString("Rebinding point at index: ") + MString(std::to_string(index).c_str()));
+#endif
         }
         calculateBinding(data, index);
     }
@@ -312,7 +316,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     MFloatArray bestBaryCoords;
     MPoint A, B, C, pointOnMeshPoint, closestPoint;
     MMatrix worldMatrix;
-    MStatus stat;
+    MStatus status;
     MObject meshObj;
     MPointOnMesh pointOnMesh;
 
@@ -326,13 +330,13 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         // this is nasty as we don't want to access other dag objects from
         // within the node but this way we can get the correct triangle id
         // as bind is not called regularly this is the best way to do it
-        stat = GetOrigGeomPathFromPlug(geomIndex, dagPath);
-        if (stat != MS::kSuccess) continue;
+        status = GetOrigGeomPathFromPlug(geomIndex, dagPath);
+        if (status != MS::kSuccess) continue;
 
         worldMatrix = dagPath.inclusiveMatrix();
         MMeshIntersector intersector;
-        stat = intersector.create(dagPath.node(), worldMatrix);
-        if (stat != MS::kSuccess) continue;
+        status = intersector.create(dagPath.node(), worldMatrix);
+        if (status != MS::kSuccess) continue;
 
         intersector.getClosestPoint(inputPoint, pointOnMesh);
 

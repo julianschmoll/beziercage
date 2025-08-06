@@ -91,7 +91,7 @@ class CageCreationContext(omui.MPxContext):
         cmds.hotkey(k="b", alt=False, ctl=False, rn=kRadiusReleasedCommand)
 
         self.cage_creator.offset_distance = self.offset_distance
-
+        self.cage_creator.update_state()
         self.undo_redo_script_job()
 
     def toolOffCleanup(self):
@@ -453,7 +453,7 @@ def initializePlugin(plugin):
         om.MGlobal.displayError("CageCreator module is not available. Please make sure plugin is loaded correctly.")
         return
 
-    if om.MGlobal.mayaState() != om.MGlobal.kBatch:
+    if om.MGlobal.mayaState() == om.MGlobal.kInteractive:
         try:
             import cage.menu
             cage.menu.create()
@@ -471,7 +471,7 @@ def initializePlugin(plugin):
 def uninitializePlugin(plugin):
     plugin_fn = om.MFnPlugin(plugin)
 
-    if om.MGlobal.mayaState() != om.MGlobal.kBatch:
+    if om.MGlobal.mayaState() == om.MGlobal.kInteractive:
         try:
             import cage.menu
             cage.menu.destroy()
