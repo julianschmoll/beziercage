@@ -2,6 +2,7 @@ import copy
 from maya import OpenMaya
 from maya import cmds
 import logging
+import json
 
 from cage.bezier_control import BezierControl
 from cage import curve_from_view
@@ -51,7 +52,7 @@ class CageCreator:
     def _current_state(self):
         """Returns the current state of the class."""
         return {
-            "points": copy.deepcopy(self.points),
+            "points": [p.to_dict() for p in self.points],
             "edge_data": copy.deepcopy(self.edge_data),
             "patches_controls": copy.deepcopy(self.patches_controls),
             "current_patch_edge_tuples": copy.deepcopy(self.current_patch_edge_tuples),
@@ -70,7 +71,7 @@ class CageCreator:
         Args:
             state (dict): The state to restore.
         """
-        self.points = state["points"]
+        self.points = [BezierControl.from_dict(p) for p in state["points"]]
         self.edge_data = state["edge_data"]
         self.patches_controls = state["patches_controls"]
         self.current_patch_edge_tuples = state["current_patch_edge_tuples"]
@@ -242,6 +243,39 @@ class CageCreator:
 
         return point1.anchor, handle1, handle2, point2.anchor
 
+    def _update_edges_and_patches(self):
+        self.current_patch_edge_tuples = []
+        self.current_patch_anchors = []
+        self.current_edge_anchors = []
+        valid_edges = []
+        for created_edge in self.edge_data:
+            edge_tuple = created_edge["edge"]
+            if self.points[edge_tuple[0]].valid and self.points[edge_tuple[1]].valid:
+                valid_edges.append(created_edge)
+            else:
+                LOGGER.info(f"Removing edge {edge_tuple} due to invalid points.")
+        self.edge_data = valid_edges
+        valid_patches = []
+        for patch in self.patches_controls:
+            is_valid = all(self.points[p_idx].valid for p_idx in patch["points"])
+            if is_valid:
+                valid_patches.append(patch)
+            else:
+                LOGGER.info(f"Removing patch with points {patch['points']} due to invalid points.")
+        self.patches_controls = valid_patches
+
+    def _update_point_positions(self):
+        for point in self.points:
+            control = point.anchor["ctl"]
+            if cmds.objExists(control):
+                matrix = cmds.getAttr(f"{control}.worldMatrix[0]")
+                point.matrix = matrix
+                point.position = (matrix[12], matrix[13], matrix[14])
+                LOGGER.info(f"Updated point {point.name} at position {point.position}")
+            else:
+                point.valid = False
+                LOGGER.warning(f"Point {point.name} does not exist. Marking as invalid.")
+
     def undo(self):
         """Reverts the last operation."""
         if not self.undo_stack:
@@ -264,39 +298,26 @@ class CageCreator:
 
     def update_state(self):
         """Updates data based on the Maya scene."""
-        LOGGER.info("Updating points in the cage...")
-        for point in self.points:
-            control = point.anchor["ctl"]
-            if cmds.objExists(control):
-                matrix = cmds.getAttr(f"{control}.worldMatrix[0]")
-                point.matrix = matrix
-                point.position = (matrix[12], matrix[13], matrix[14])
-                LOGGER.info(f"Updated point {point.name} at position {point.position}")
+        LOGGER.info("Updating cage state...")
+        state_node = f"{self.cage_name}_state_node"
+        if cmds.objExists(state_node):
+            json_str = cmds.getAttr(f"{state_node}.state")
+            if json_str:
+                self._restore_state(json.loads(json_str))
+                LOGGER.info("Restored state from scene file.")
             else:
-                point.valid = False
-                LOGGER.warning(f"Point {point.name} does not exist. Marking as invalid.")
+                LOGGER.warning("State node exists but has no data.")
+        self._update_point_positions()
+        self._update_edges_and_patches()
 
-        self.current_patch_edge_tuples = []
-        self.current_patch_anchors = []
-        self.current_edge_anchors = []
+    def save_state_to_scenefile(self):
+        json_str = json.dumps(self._current_state())
+        state_node = f"{self.cage_name}_state_node"
+        if not cmds.objExists(state_node):
+            state_node = cmds.createNode("network", name=state_node)
+            cmds.addAttr(state_node, ln="state", dt="string")
+        cmds.setAttr(f"{state_node}.state", json_str, type="string")
 
-        valid_edges = []
-        for created_edge in self.edge_data:
-            edge_tuple = created_edge["edge"]
-            if self.points[edge_tuple[0]].valid and self.points[edge_tuple[1]].valid:
-                valid_edges.append(created_edge)
-            else:
-                LOGGER.info(f"Removing edge {edge_tuple} due to invalid points.")
-        self.edge_data = valid_edges
-
-        valid_patches = []
-        for patch in self.patches_controls:
-            is_valid = all(self.points[p_idx].valid for p_idx in patch["points"])
-            if is_valid:
-                valid_patches.append(patch)
-            else:
-                LOGGER.info(f"Removing patch with points {patch['points']} due to invalid points.")
-        self.patches_controls = valid_patches
 
     def add_point(self, matrix, mesh):
         """Adds a point to the cage, reusing if close to an existing point.
@@ -372,19 +393,19 @@ class CageCreator:
         connect_control_node(offset_pin, deformer)
 
         for anchor in self.points:
-            if not anchor.valid:
+            plug = f"{anchor.name}_srt.offsetParentMatrix"
+            try:
+                anchor_connected = cmds.listConnections(plug, s=True, d=False)
+            except Exception as e:
+                LOGGER.error(f"Error checking connections for {plug}: {e}")
                 continue
+
+            if not anchor.valid or anchor_connected:
+                continue
+
             index = cage_utils.get_next_available_idx(f"{offset_pin}.inputMatrix")
-            cmds.setAttr(
-                f"{offset_pin}.inputMatrix[{index}]",
-                *anchor.matrix,
-                type="matrix"
-            )
-            cmds.connectAttr(
-                f"{offset_pin}.outputMatrix[{index}]",
-                f"{anchor.name}_srt.offsetParentMatrix",
-                force=True
-            )
+            cmds.setAttr(f"{offset_pin}.inputMatrix[{index}]", *anchor.matrix, type="matrix")
+            cmds.connectAttr(f"{offset_pin}.outputMatrix[{index}]", plug)
 
         for patch_idx, patch_data in enumerate(self.patches_controls):
             patch_controls = patch_data["controls"]

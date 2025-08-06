@@ -122,3 +122,38 @@ class BezierControl:
                 index += 1
             return f"{base_name}_{index}"
         return base_name
+
+    def to_dict(self):
+        return {
+            "cage_name": self.cage_name,
+            "name": self.name,
+            "matrix": self.matrix,
+            "position": self.position,
+            "handles": [
+                {
+                    "name": h["name"],
+                    "display": h["display"],
+                    "matrix": h["matrix"],
+                    "point": h["point"]
+                } for h in self.handles
+            ],
+            "handle_group": self.handle_group,
+            "anchor": self.anchor,
+            "mesh": self.mesh,
+            "valid": self.valid,
+
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        obj = cls.__new__(cls)
+        obj.cage_name = data["cage_name"]
+        obj.name = data["name"]
+        obj.matrix = data["matrix"]
+        obj.position = tuple(data["position"])
+        obj.handles = data["handles"]
+        obj.handle_group = data["handle_group"]
+        obj.anchor = data["anchor"]
+        obj.mesh = data["mesh"]
+        obj.valid = data["valid"]
+        return obj

@@ -112,6 +112,7 @@ class CageCreationContext(omui.MPxContext):
         self.completeAction()
         self.cage_creator.undo_stack = []
         self.cage_creator.redo_stack = []
+        self.cage_creator.save_state_to_scenefile()
         cmds.undoInfo(closeChunk=True)
 
     def doPress(self, event, draw_manager, frame_context):
