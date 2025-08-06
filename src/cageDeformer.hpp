@@ -15,6 +15,7 @@
 #include <maya/MPointArray.h>
 
 
+// This struct holds the data for each deform task.
 struct deformTaskData {
     unsigned int numVerts;
     MPointArray *points;
@@ -27,8 +28,11 @@ struct deformTaskData {
     const std::vector<unsigned int> *patchIndex;
     const std::vector<float> *u;
     const std::vector<float> *v;
+    const MMatrix *localToWorldMatrix;
+    const MMatrix *worldToLocalMatrix;
 };
 
+// This struct holds the data for each thread in the deform task.
 struct deformThreadData {
     unsigned int start, end, numTasks;
     deformTaskData *data;

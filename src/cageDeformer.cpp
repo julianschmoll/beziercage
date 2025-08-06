@@ -206,7 +206,7 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     CHECK_MSTATUS_AND_RETURN_IT(status);
     MArrayDataHandle vertBindHandle = geomElem.child(aVertexBindData);
 
-    for (unsigned int i = 0; i < points.length(); ++i) {
+    for (unsigned int i = 0; i < numPoints; ++i) {
         status = vertBindHandle.jumpToElement(i);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MDataHandle bindData = vertBindHandle.inputValue(&status);
@@ -226,6 +226,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         weights.push_back(weightVal);
     }
 
+    const MMatrix worldToLocalMatrix = localToWorldMatrix.inverse();
+
     // prepare thread tasks
     MDeformTaskData.numVerts = points.length();
     MDeformTaskData.points = &points;
@@ -238,6 +240,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     MDeformTaskData.patchIndex = &patchIdx;
     MDeformTaskData.u = &u;
     MDeformTaskData.v = &v;
+    MDeformTaskData.localToWorldMatrix = &localToWorldMatrix;
+    MDeformTaskData.worldToLocalMatrix = &worldToLocalMatrix;
 
     CreateThreadData();
     MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&MDeformThreadData[0]));
@@ -278,6 +282,9 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     const auto &v = *data->v;
     const auto &controlPoints = *data->controlPoints;
     const auto &preControlPoints = *data->preControlPoints;
+    const auto &worldToLocalMatrix = *data->worldToLocalMatrix;
+    const auto &localToWorldMatrix = *data->localToWorldMatrix;
+    const auto &envelope = data->envelope;
 
     for (unsigned int i = threadData->start; i < threadData->end; ++i) {
         if (i >= bindDist.size() || i >= weights.size() || i >= patchIdx.size() || i >= u.size() || i >= v.size() || i
@@ -287,20 +294,30 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
 #endif
             continue;
         }
-        if (bindDist[i] < data->distanceTreshold) {
+
+        const auto weight = weights[i];
+
+        // Skip calculation if we don't need to deform to be faster
+        if (weight != 0.0f && bindDist[i] < data->distanceTreshold) {
 #if DEBUG_LOG
             MGlobal::displayInfo("Deforming vertex at index " + MString(std::to_string(i).c_str()));
             MGlobal::displayInfo("Points length: " + points.length());
             MGlobal::displayInfo("Patch index: " + MString(std::to_string(patchIdx[i]).c_str()));
             MGlobal::displayInfo("U: " + MString(std::to_string(u[i]).c_str()) + ", V: " + MString(std::to_string(v[i]).c_str()));
 #endif
+
+            // Calculate the deformation in world space
+            MPoint worldPoint = points[i] * localToWorldMatrix;
             MPoint preDeformPoint = evaluateBezierPatch(preControlPoints[patchIdx[i]], u[i], v[i]);
             MPoint postDeformPoint = evaluateBezierPatch(controlPoints[patchIdx[i]], u[i], v[i]);
             MVector deformVec = postDeformPoint - preDeformPoint;
 #if DEBUG_LOG
             MGlobal::displayInfo("Calculated deformation vector");
 #endif
-            points[i] += deformVec * weights[i] * data->envelope;
+            worldPoint += deformVec * weight * envelope;
+
+            // Maya Deformers expect the points to be in local space
+            points[i] = worldPoint * worldToLocalMatrix;
         }
     }
     return 0;
