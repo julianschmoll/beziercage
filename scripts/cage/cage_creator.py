@@ -396,9 +396,9 @@ class CageCreator:
             plug = f"{anchor.name}_srt.offsetParentMatrix"
             try:
                 anchor_connected = cmds.listConnections(plug, s=True, d=False)
-            except Error as e:
+            except Exception as e:
                 LOGGER.error(f"Error checking connections for {plug}: {e}")
-                anchor_connected = False
+                continue
 
             if not anchor.valid or anchor_connected:
                 continue
