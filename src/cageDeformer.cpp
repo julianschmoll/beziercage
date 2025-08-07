@@ -218,14 +218,14 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
         const float *uvPtr = bindData.child(aBindUV).asFloat2();
         float uVal = uvPtr[0];
         float vVal = uvPtr[1];
-        unsigned int patchIdxVal = static_cast<unsigned int>(bindData.child(aBindPatchIndex).asInt());
+        auto idx = static_cast<unsigned int>(bindData.child(aBindPatchIndex).asInt());
 
         float weightVal = weightValue(dataBlock, geometryIndex, i);
 
         bindDist.push_back(bindDistVal);
         u.push_back(uVal);
         v.push_back(vVal);
-        patchIdx.push_back(patchIdxVal);
+        patchIdx.push_back(idx);
         weights.push_back(weightVal);
     }
 
@@ -266,9 +266,9 @@ void bezierCage::CreateThreadData() {
 }
 
 void bezierCage::CreateTasks(void *pData, MThreadRootTask *pRoot) {
-    deformThreadData *pThreadData = static_cast<deformThreadData *>(pData);
-    int taskCount = pThreadData[0].numTasks;
-    for (int i = 0; i < taskCount; ++i) {
+    auto *pThreadData = static_cast<deformThreadData *>(pData);
+    const unsigned int taskCount = pThreadData[0].numTasks;
+    for (unsigned int i = 0; i < taskCount; ++i) {
         MThreadPool::createTask(ThreadEvaluate, static_cast<void *>(&pThreadData[i]), pRoot);
     }
     MThreadPool::executeAndJoin(pRoot);
@@ -579,79 +579,87 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
 }
 
 class BezierPatchDistance {
-    const std::vector<MPoint> &controlPoints;
-    const MPoint &queryPoint;
-    const int u_degree = 3;
-    const int v_degree = 3;
+    const std::vector<MPoint> &patchControlPoints;
+    const MPoint &targetPoint;
+    const int uDegree = 3;
+    const int vDegree = 3;
 
-    std::array<double, 4> bernstein(double t) const {
-        double t2 = t * t;
-        double t3 = t2 * t;
-        double one_minus_t = 1.0 - t;
-        double one_minus_t2 = one_minus_t * one_minus_t;
-        double one_minus_t3 = one_minus_t2 * one_minus_t;
-        return {one_minus_t3, 3.0 * t * one_minus_t2, 3.0 * t2 * one_minus_t, t3};
+    static std::array<double, 4> bernstein(const double parameter) {
+        const double parameterSquared = parameter * parameter;
+        const double parameterCubed = parameterSquared * parameter;
+        const double oneMinusParameter = 1.0 - parameter;
+        const double oneMinusParameterSquared = oneMinusParameter * oneMinusParameter;
+        const double oneMinusParameterCubed = oneMinusParameterSquared * oneMinusParameter;
+        return {
+            oneMinusParameterCubed,
+            3.0 * parameter * oneMinusParameterSquared,
+            3.0 * parameterSquared * oneMinusParameter,
+            parameterCubed
+        };
     }
 
-    std::array<double, 4> bernstein_derivative(double t) const {
-        double t2 = t * t;
-        double one_minus_t = 1.0 - t;
-        double one_minus_t2 = one_minus_t * one_minus_t;
+    static std::array<double, 4> bernsteinDerivative(const double parameter) {
+        const double parameterSquared = parameter * parameter;
+        const double oneMinusParameter = 1.0 - parameter;
+        const double oneMinusParameterSquared = oneMinusParameter * oneMinusParameter;
         return {
-            -3.0 * one_minus_t2, 3.0 * one_minus_t2 - 6.0 * t * one_minus_t, 6.0 * t * one_minus_t - 3.0 * t2, 3.0 * t2
+            -3.0 * oneMinusParameterSquared,
+            3.0 * oneMinusParameterSquared - 6.0 * parameter * oneMinusParameter,
+            6.0 * parameter * oneMinusParameter - 3.0 * parameterSquared,
+            3.0 * parameterSquared
         };
     }
 
 public:
     BezierPatchDistance(const std::vector<MPoint> &cps, const MPoint &qp)
-        : controlPoints(cps), queryPoint(qp) {
+        : patchControlPoints(cps), targetPoint(qp) {
     }
 
     // We should use the function we already have but for simplicity reasons and different data types,
     // we implement the evaluation of the bezier patch here.
-    MPoint evaluate(double u, double v) const {
-        auto B_u = bernstein(u);
-        auto B_v = bernstein(v);
+    [[nodiscard]] MPoint evaluate(const double u, const double v) const {
+        auto bernsteinU = bernstein(u);
+        auto bernsteinV = bernstein(v);
         MPoint point(0, 0, 0);
-        for (int i = 0; i <= u_degree; ++i) {
-            for (int j = 0; j <= v_degree; ++j) {
-                point += controlPoints[i * (v_degree + 1) + j] * B_u[i] * B_v[j];
+        for (int i = 0; i <= uDegree; ++i) {
+            for (int j = 0; j <= vDegree; ++j) {
+                point += patchControlPoints[i * (vDegree + 1) + j] * bernsteinU[i] * bernsteinV[j];
             }
         }
         return point;
     }
 
-    void derivatives(double u, double v, MVector &dPdu, MVector &dPdv) const {
-        auto B_u = bernstein(u);
-        auto B_v = bernstein(v);
-        auto dB_u = bernstein_derivative(u);
-        auto dB_v = bernstein_derivative(v);
+    void derivatives(const double u, const double v, MVector &dPdu, MVector &dPdv) const {
+        auto bernsteinU = bernstein(u);
+        auto bernsteinV = bernstein(v);
+        auto bernsteinDerivU = bernsteinDerivative(u);
+        auto bernsteinDerivV = bernsteinDerivative(v);
 
         dPdu = MVector::zero;
         dPdv = MVector::zero;
 
-        for (int i = 0; i <= u_degree; ++i) {
-            for (int j = 0; j <= v_degree; ++j) {
-                const MPoint &cp = controlPoints[i * (v_degree + 1) + j];
-                dPdu += MVector(cp) * dB_u[i] * B_v[j];
-                dPdv += MVector(cp) * B_u[i] * dB_v[j];
+        for (int i = 0; i <= uDegree; ++i) {
+            for (int j = 0; j <= vDegree; ++j) {
+                const MPoint &cp = patchControlPoints[i * (vDegree + 1) + j];
+                dPdu += MVector(cp) * bernsteinDerivU[i] * bernsteinV[j];
+                dPdv += MVector(cp) * bernsteinU[i] * bernsteinDerivV[j];
             }
         }
     }
 
-    double operator()(const Eigen::VectorXd &uv, Eigen::VectorXd &grad) {
-        double u = uv[0];
-        double v = uv[1];
+    double operator()(const Eigen::VectorXd &uvParams, Eigen::VectorXd &gradient) {
+        const double u = uvParams[0];
+        const double v = uvParams[1];
 
-        MPoint p = evaluate(u, v);
-        MVector diff = p - queryPoint;
+        MPoint surfacePoint = evaluate(u, v);
+        MVector diff = surfacePoint - targetPoint;
 
         MVector dPdu, dPdv;
         derivatives(u, v, dPdu, dPdv);
 
-        grad.resize(2);
-        grad[0] = 2.0 * diff * dPdu;
-        grad[1] = 2.0 * diff * dPdv;
+        gradient.resize(2);
+        gradient[0] = 2.0 * diff * dPdu;
+        gradient[1] = 2.0 * diff * dPdv;
 
         return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
     }
@@ -661,20 +669,23 @@ std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &contro
                                                const MPoint &queryPoint) {
     LBFGSpp::LBFGSBParam<double> param;
 
-    // We could make the configurable in the future
+    // We could make this configurable in the future
     param.epsilon = 1e-5;
     param.max_iterations = 100;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
     BezierPatchDistance distance(controlPoints, queryPoint);
 
-    constexpr Eigen::Index n = 2;
-    Eigen::VectorXd lb = Eigen::VectorXd::Constant(n, 0.0);
-    Eigen::VectorXd ub = Eigen::VectorXd::Constant(n, 1.0);
-    Eigen::VectorXd uv = Eigen::VectorXd::Constant(n, 0.5);
+    // this sets lower bounds to 0.0 and upper bounds to 1.0 for both u and v parameters
+    constexpr Eigen::Index dimension = 2;
+    Eigen::VectorXd lowerBounds = Eigen::VectorXd::Constant(dimension, 0.0);
+    Eigen::VectorXd upperBounds = Eigen::VectorXd::Constant(dimension, 1.0);
 
-    double fx;
-    solver.minimize(distance, uv, fx, lb, ub);
+    // initial guess (0.5, 0.5) which is the center of the patch
+    Eigen::VectorXd uv = Eigen::VectorXd::Constant(dimension, 0.5);
+
+    double finalCost;
+    solver.minimize(distance, uv, finalCost, lowerBounds, upperBounds);
 
     return {static_cast<float>(uv[0]), static_cast<float>(uv[1])};
 }
