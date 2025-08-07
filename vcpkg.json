@@ -1,0 +1,7 @@
+{
+  "name": "cage",
+  "version-string": "latest",
+  "dependencies": [
+    "eigen3"
+  ]
+}

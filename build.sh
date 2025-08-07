@@ -5,7 +5,18 @@
 #   LOG_LEVEL can be ERROR, INFO, DEBUG (case-insensitive)
 #
 
+set -e
+
 root_folder="$(pwd)"
+vcpkg_dir="$root_folder/external/vcpkg"
+
+echo "Bootstrapping vcpkg if necessary..."
+if [ ! -f "$vcpkg_dir/vcpkg" ]; then
+    "$vcpkg_dir/bootstrap-vcpkg.sh" -disableMetrics
+fi
+
+echo "Installing dependencies with vcpkg..."
+"$vcpkg_dir/vcpkg" install
 
 case "$OSTYPE" in
   darwin*)  os="macOS" ;;
@@ -13,7 +24,6 @@ case "$OSTYPE" in
   cygwin*)  os="Windows" ;;
   *)        os="$OSTYPE" ;;
 esac
-
 
 builddir="$root_folder/build/$1-$os"
 
@@ -34,7 +44,9 @@ fi
 CMAKE_FLAGS="-DLOG_LEVEL=$LOG_LEVEL_VALUE -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD:-17}"
 echo "Setting LOG_LEVEL to $LOG_LEVEL_VALUE"
 
-cmake -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
+toolchain_file="$vcpkg_dir/scripts/buildsystems/vcpkg.cmake"
+
+cmake -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
 cmake --build . --target install --config Release
 cmake --build . --target clean
 

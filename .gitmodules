@@ -1,0 +1,6 @@
+[submodule "external/LBFGSpp"]
+	path = external/LBFGSpp
+	url = https://github.com/yixuan/LBFGSpp.git
+[submodule "external/vcpkg"]
+	path = external/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
