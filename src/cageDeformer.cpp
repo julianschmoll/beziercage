@@ -22,6 +22,9 @@
 #include <maya/MPxDeformerNode.h>
 #include <maya/MThreadPool.h>
 
+#include <LBFGS.h>
+#include <Eigen/Core>
+
 #include <thread>
 #include <vector>
 
@@ -575,33 +578,52 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint) {
-    constexpr int resolution = 20;
-    constexpr float earlyExitThreshold = 0.12f;
-    float minDist = std::numeric_limits<float>::max();
-    float bestU = 0.5f, bestV = 0.5f;
+class BezierPatchDistance {
+public:
+    const std::vector<MPoint>& controlPoints;
+    Eigen::Vector3d queryPoint;
 
-    for (int i = 0; i <= resolution; ++i) {
-        float u = static_cast<float>(i) / resolution;
-        for (int j = 0; j <= resolution; ++j) {
-            float v = static_cast<float>(j) / resolution;
-            MPoint p = evaluateBezierPatch(controlPoints, u, v);
-            float dist = static_cast<float>(p.distanceTo(queryPoint));
-            if (dist < minDist) {
-                minDist = dist;
-                bestU = u;
-                bestV = v;
-                if (minDist < earlyExitThreshold) {
-#if DEBUG_LOG
-                    MGlobal::displayInfo(
-                        MString("Early exit from findBindingUV with u: ") + MString(std::to_string(bestU).c_str()) +
-                        MString(", v: ") + MString(std::to_string(bestV).c_str())
-                    );
-#endif
-                    return {bestU, bestV};
-                }
-            }
+    BezierPatchDistance(const std::vector<MPoint>& cps, const MPoint& qp)
+        : controlPoints(cps), queryPoint(qp.x, qp.y, qp.z) {}
+
+    double operator()(const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
+        float u = static_cast<float>(x[0]);
+        float v = static_cast<float>(x[1]);
+        MPoint p = evaluateBezierPatch(controlPoints, u, v);
+        Eigen::Vector3d diff(p.x - queryPoint[0], p.y - queryPoint[1], p.z - queryPoint[2]);
+        double val = diff.squaredNorm();
+
+        const double eps = 1e-6;
+        for (int i = 0; i < 2; ++i) {
+            Eigen::VectorXd x1 = x, x2 = x;
+            x1[i] -= eps;
+            x2[i] += eps;
+            float u1 = static_cast<float>(x1[0]), v1 = static_cast<float>(x1[1]);
+            float u2 = static_cast<float>(x2[0]), v2 = static_cast<float>(x2[1]);
+            MPoint p1 = evaluateBezierPatch(controlPoints, u1, v1);
+            MPoint p2 = evaluateBezierPatch(controlPoints, u2, v2);
+            Eigen::Vector3d d1(p1.x - queryPoint[0], p1.y - queryPoint[1], p1.z - queryPoint[2]);
+            Eigen::Vector3d d2(p2.x - queryPoint[0], p2.y - queryPoint[1], p2.z - queryPoint[2]);
+            grad[i] = (d2.squaredNorm() - d1.squaredNorm()) / (2 * eps);
         }
+        return val;
     }
-    return {bestU, bestV};
+};
+
+std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint) {
+    LBFGSpp::LBFGSParam<double> param;
+    param.max_iterations = 50;
+    param.epsilon = 1e-6;
+    LBFGSpp::LBFGSSolver<double> solver(param);
+
+    Eigen::VectorXd x(2);
+    x << 0.5, 0.5;
+
+    BezierPatchDistance functor(controlPoints, queryPoint);
+    double fx;
+    int niter = solver.minimize(functor, x, fx);
+
+    x[0] = std::max(0.0, std::min(1.0, x[0]));
+    x[1] = std::max(0.0, std::min(1.0, x[1]));
+    return {static_cast<float>(x[0]), static_cast<float>(x[1])};
 }
