@@ -607,6 +607,8 @@ public:
         : controlPoints(cps), queryPoint(qp) {
     }
 
+    // We should use the function we already have but for simplicity reasons and different data types,
+    // we implement the evaluation of the bezier patch here.
     MPoint evaluate(double u, double v) const {
         auto B_u = bernstein(u);
         auto B_v = bernstein(v);
