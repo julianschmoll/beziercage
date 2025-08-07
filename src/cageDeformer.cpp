@@ -22,7 +22,7 @@
 #include <maya/MPxDeformerNode.h>
 #include <maya/MThreadPool.h>
 
-#include <LBFGS.h>
+#include <LBFGSB.h>
 #include <Eigen/Core>
 
 #include <thread>
@@ -578,52 +578,112 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-class BezierPatchDistance {
-public:
+class BezierPatchDistance
+{
+private:
     const std::vector<MPoint>& controlPoints;
-    Eigen::Vector3d queryPoint;
+    const MPoint& queryPoint;
+    const int u_degree = 3;
+    const int v_degree = 3;
 
+    // Berechnet die Bernstein-Basispolynome und ihre Ableitungen.
+    std::array<double, 4> bernstein(double t) const {
+        double t2 = t * t;
+        double t3 = t2 * t;
+        double one_minus_t = 1.0 - t;
+        double one_minus_t2 = one_minus_t * one_minus_t;
+        double one_minus_t3 = one_minus_t2 * one_minus_t;
+        return {one_minus_t3, 3.0 * t * one_minus_t2, 3.0 * t2 * one_minus_t, t3};
+    }
+
+    std::array<double, 4> bernstein_derivative(double t) const {
+        double t2 = t * t;
+        double one_minus_t = 1.0 - t;
+        double one_minus_t2 = one_minus_t * one_minus_t;
+        return {-3.0 * one_minus_t2, 3.0 * one_minus_t2 - 6.0 * t * one_minus_t, 6.0 * t * one_minus_t - 3.0 * t2, 3.0 * t2};
+    }
+
+public:
     BezierPatchDistance(const std::vector<MPoint>& cps, const MPoint& qp)
-        : controlPoints(cps), queryPoint(qp.x, qp.y, qp.z) {}
+        : controlPoints(cps), queryPoint(qp) {}
 
-    double operator()(const Eigen::VectorXd& x, Eigen::VectorXd& grad) {
-        float u = static_cast<float>(x[0]);
-        float v = static_cast<float>(x[1]);
-        MPoint p = evaluateBezierPatch(controlPoints, u, v);
-        Eigen::Vector3d diff(p.x - queryPoint[0], p.y - queryPoint[1], p.z - queryPoint[2]);
-        double val = diff.squaredNorm();
-
-        const double eps = 1e-6;
-        for (int i = 0; i < 2; ++i) {
-            Eigen::VectorXd x1 = x, x2 = x;
-            x1[i] -= eps;
-            x2[i] += eps;
-            float u1 = static_cast<float>(x1[0]), v1 = static_cast<float>(x1[1]);
-            float u2 = static_cast<float>(x2[0]), v2 = static_cast<float>(x2[1]);
-            MPoint p1 = evaluateBezierPatch(controlPoints, u1, v1);
-            MPoint p2 = evaluateBezierPatch(controlPoints, u2, v2);
-            Eigen::Vector3d d1(p1.x - queryPoint[0], p1.y - queryPoint[1], p1.z - queryPoint[2]);
-            Eigen::Vector3d d2(p2.x - queryPoint[0], p2.y - queryPoint[1], p2.z - queryPoint[2]);
-            grad[i] = (d2.squaredNorm() - d1.squaredNorm()) / (2 * eps);
+    // Berechnet den Punkt auf dem Patch für die gegebenen UV-Koordinaten.
+    MPoint evaluate(double u, double v) const {
+        auto B_u = bernstein(u);
+        auto B_v = bernstein(v);
+        MPoint point(0, 0, 0);
+        for (int i = 0; i <= u_degree; ++i) {
+            for (int j = 0; j <= v_degree; ++j) {
+                point += controlPoints[i * (v_degree + 1) + j] * B_u[i] * B_v[j];
+            }
         }
-        return val;
+        return point;
+    }
+
+    // Berechnet die partiellen Ableitungen des Patch-Punkts nach u und v.
+    void derivatives(double u, double v, MVector& dPdu, MVector& dPdv) const {
+        auto B_u = bernstein(u);
+        auto B_v = bernstein(v);
+        auto dB_u = bernstein_derivative(u);
+        auto dB_v = bernstein_derivative(v);
+
+        dPdu = MVector::zero;
+        dPdv = MVector::zero;
+
+        for (int i = 0; i <= u_degree; ++i) {
+            for (int j = 0; j <= v_degree; ++j) {
+                const MPoint& cp = controlPoints[i * (v_degree + 1) + j];
+                dPdu += MVector(cp) * dB_u[i] * B_v[j];
+                dPdv += MVector(cp) * B_u[i] * dB_v[j];
+            }
+        }
+    }
+
+    // Der Operator(), der von der L-BFGS-B-Bibliothek aufgerufen wird.
+    double operator()(const Eigen::VectorXd& uv, Eigen::VectorXd& grad) {
+        double u = uv[0];
+        double v = uv[1];
+
+        MPoint p = evaluate(u, v);
+        MVector diff = p - queryPoint;
+
+        MVector dPdu, dPdv;
+        derivatives(u, v, dPdu, dPdv);
+
+        grad.resize(2);
+        grad[0] = 2.0 * diff * dPdu;
+        grad[1] = 2.0 * diff * dPdv;
+
+        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
     }
 };
 
-std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint) {
-    LBFGSpp::LBFGSParam<double> param;
-    param.max_iterations = 50;
-    param.epsilon = 1e-6;
-    LBFGSpp::LBFGSSolver<double> solver(param);
+std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint>& controlPoints,
+                                               const MPoint& queryPoint) {
+    using namespace LBFGSpp;
 
-    Eigen::VectorXd x(2);
-    x << 0.5, 0.5;
+    // Parameter für den L-BFGS-B-Solver einrichten.
+    LBFGSBParam<double> param;
+    param.epsilon = 1e-5;
+    param.max_iterations = 100;
 
-    BezierPatchDistance functor(controlPoints, queryPoint);
+    // Solver und Funktionsobjekt erstellen.
+    LBFGSBSolver<double> solver(param);
+    BezierPatchDistance fun(controlPoints, queryPoint);
+
+    // Die Variablen sind u und v, daher ist die Dimension 2.
+    const int n = 2;
+
+    // Grenzen für u und v (beide im Bereich [0, 1]).
+    Eigen::VectorXd lb = Eigen::VectorXd::Constant(n, 0.0);
+    Eigen::VectorXd ub = Eigen::VectorXd::Constant(n, 1.0);
+
+    // Erste Schätzung für (u, v).
+    Eigen::VectorXd uv = Eigen::VectorXd::Constant(n, 0.5);
+
+    // x wird überschrieben, um der beste gefundene Punkt zu sein.
     double fx;
-    int niter = solver.minimize(functor, x, fx);
+    solver.minimize(fun, uv, fx, lb, ub);
 
-    x[0] = std::max(0.0, std::min(1.0, x[0]));
-    x[1] = std::max(0.0, std::min(1.0, x[1]));
-    return {static_cast<float>(x[0]), static_cast<float>(x[1])};
+    return {static_cast<float>(uv[0]), static_cast<float>(uv[1])};
 }

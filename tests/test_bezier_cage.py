@@ -5,7 +5,7 @@ from tests import decorators
 
 import unittest
 
-SUBDIVISIONS = 40
+SUBDIVISIONS = 200
 CONTROL_PATCHES = [
     [
         "test_cage_anchor_0_ctl",
