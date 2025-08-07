@@ -660,16 +660,18 @@ public:
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
                                                const MPoint &queryPoint) {
     LBFGSpp::LBFGSBParam<double> param;
+
+    // We could make the configurable in the future
     param.epsilon = 1e-5;
     param.max_iterations = 100;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
     BezierPatchDistance distance(controlPoints, queryPoint);
 
-    constexpr int n = 2;
-    Eigen::VectorXd lb = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 0.0);
-    Eigen::VectorXd ub = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 1.0);
-    Eigen::VectorXd uv = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 0.5);
+    constexpr Eigen::Index n = 2;
+    Eigen::VectorXd lb = Eigen::VectorXd::Constant(n, 0.0);
+    Eigen::VectorXd ub = Eigen::VectorXd::Constant(n, 1.0);
+    Eigen::VectorXd uv = Eigen::VectorXd::Constant(n, 0.5);
 
     double fx;
     solver.minimize(distance, uv, fx, lb, ub);
