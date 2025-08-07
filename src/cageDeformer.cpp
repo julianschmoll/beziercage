@@ -578,10 +578,9 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-class BezierPatchDistance
-{
-    const std::vector<MPoint>& controlPoints;
-    const MPoint& queryPoint;
+class BezierPatchDistance {
+    const std::vector<MPoint> &controlPoints;
+    const MPoint &queryPoint;
     const int u_degree = 3;
     const int v_degree = 3;
 
@@ -598,12 +597,15 @@ class BezierPatchDistance
         double t2 = t * t;
         double one_minus_t = 1.0 - t;
         double one_minus_t2 = one_minus_t * one_minus_t;
-        return {-3.0 * one_minus_t2, 3.0 * one_minus_t2 - 6.0 * t * one_minus_t, 6.0 * t * one_minus_t - 3.0 * t2, 3.0 * t2};
+        return {
+            -3.0 * one_minus_t2, 3.0 * one_minus_t2 - 6.0 * t * one_minus_t, 6.0 * t * one_minus_t - 3.0 * t2, 3.0 * t2
+        };
     }
 
 public:
-    BezierPatchDistance(const std::vector<MPoint>& cps, const MPoint& qp)
-        : controlPoints(cps), queryPoint(qp) {}
+    BezierPatchDistance(const std::vector<MPoint> &cps, const MPoint &qp)
+        : controlPoints(cps), queryPoint(qp) {
+    }
 
     MPoint evaluate(double u, double v) const {
         auto B_u = bernstein(u);
@@ -617,7 +619,7 @@ public:
         return point;
     }
 
-    void derivatives(double u, double v, MVector& dPdu, MVector& dPdv) const {
+    void derivatives(double u, double v, MVector &dPdu, MVector &dPdv) const {
         auto B_u = bernstein(u);
         auto B_v = bernstein(v);
         auto dB_u = bernstein_derivative(u);
@@ -628,14 +630,14 @@ public:
 
         for (int i = 0; i <= u_degree; ++i) {
             for (int j = 0; j <= v_degree; ++j) {
-                const MPoint& cp = controlPoints[i * (v_degree + 1) + j];
+                const MPoint &cp = controlPoints[i * (v_degree + 1) + j];
                 dPdu += MVector(cp) * dB_u[i] * B_v[j];
                 dPdv += MVector(cp) * B_u[i] * dB_v[j];
             }
         }
     }
 
-    double operator()(const Eigen::VectorXd& uv, Eigen::VectorXd& grad) {
+    double operator()(const Eigen::VectorXd &uv, Eigen::VectorXd &grad) {
         double u = uv[0];
         double v = uv[1];
 
@@ -653,23 +655,22 @@ public:
     }
 };
 
-std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint>& controlPoints,
-                                               const MPoint& queryPoint) {
+std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
+                                               const MPoint &queryPoint) {
     LBFGSpp::LBFGSBParam<double> param;
     param.epsilon = 1e-5;
     param.max_iterations = 100;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
-    BezierPatchDistance fun(controlPoints, queryPoint);
+    BezierPatchDistance distance(controlPoints, queryPoint);
 
-    int n = 2;
-    Eigen::VectorXd lb = Eigen::VectorXd::Constant(n, 0.0);
-    Eigen::VectorXd ub = Eigen::VectorXd::Constant(n, 1.0);
-
+    constexpr int n = 2;
+    Eigen::VectorXd lb = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 0.0);
+    Eigen::VectorXd ub = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 1.0);
     Eigen::VectorXd uv = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 0.5);
 
     double fx;
-    solver.minimize(fun, uv, fx, lb, ub);
+    solver.minimize(distance, uv, fx, lb, ub);
 
     return {static_cast<float>(uv[0]), static_cast<float>(uv[1])};
 }
