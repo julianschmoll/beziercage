@@ -4,6 +4,9 @@ setlocal
 set "root_folder=%cd%"
 set "vcpkg_dir=%root_folder%/external/vcpkg"
 
+echo Updating submodules...
+git submodule update --init --recursive
+
 echo Bootstrapping vcpkg if necessary...
 if not exist "%vcpkg_dir%/vcpkg.exe" (
     call "%vcpkg_dir%/bootstrap-vcpkg.bat" -disableMetrics
@@ -19,7 +22,7 @@ if exist "%builddir%" (
 mkdir "%builddir%"
 cd "%builddir%"
 
-echo Building cage for Maya%1
+echo Building cage for Maya %1 on Windows.
 
 set "LOG_LEVEL_VALUE=1"
 if /I "%2"=="INFO" set "LOG_LEVEL_VALUE=2"

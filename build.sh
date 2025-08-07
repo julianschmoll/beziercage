@@ -10,6 +10,9 @@ set -e
 root_folder="$(pwd)"
 vcpkg_dir="$root_folder/external/vcpkg"
 
+echo Updating submodules...
+git submodule update --init --recursive
+
 echo "Bootstrapping vcpkg if necessary..."
 if [ ! -f "$vcpkg_dir/vcpkg" ]; then
     "$vcpkg_dir/bootstrap-vcpkg.sh" -disableMetrics
