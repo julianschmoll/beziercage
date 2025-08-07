@@ -580,13 +580,11 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
 
 class BezierPatchDistance
 {
-private:
     const std::vector<MPoint>& controlPoints;
     const MPoint& queryPoint;
     const int u_degree = 3;
     const int v_degree = 3;
 
-    // Berechnet die Bernstein-Basispolynome und ihre Ableitungen.
     std::array<double, 4> bernstein(double t) const {
         double t2 = t * t;
         double t3 = t2 * t;
@@ -607,7 +605,6 @@ public:
     BezierPatchDistance(const std::vector<MPoint>& cps, const MPoint& qp)
         : controlPoints(cps), queryPoint(qp) {}
 
-    // Berechnet den Punkt auf dem Patch für die gegebenen UV-Koordinaten.
     MPoint evaluate(double u, double v) const {
         auto B_u = bernstein(u);
         auto B_v = bernstein(v);
@@ -620,7 +617,6 @@ public:
         return point;
     }
 
-    // Berechnet die partiellen Ableitungen des Patch-Punkts nach u und v.
     void derivatives(double u, double v, MVector& dPdu, MVector& dPdv) const {
         auto B_u = bernstein(u);
         auto B_v = bernstein(v);
@@ -639,7 +635,6 @@ public:
         }
     }
 
-    // Der Operator(), der von der L-BFGS-B-Bibliothek aufgerufen wird.
     double operator()(const Eigen::VectorXd& uv, Eigen::VectorXd& grad) {
         double u = uv[0];
         double v = uv[1];
@@ -660,28 +655,19 @@ public:
 
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint>& controlPoints,
                                                const MPoint& queryPoint) {
-    using namespace LBFGSpp;
-
-    // Parameter für den L-BFGS-B-Solver einrichten.
-    LBFGSBParam<double> param;
+    LBFGSpp::LBFGSBParam<double> param;
     param.epsilon = 1e-5;
     param.max_iterations = 100;
 
-    // Solver und Funktionsobjekt erstellen.
-    LBFGSBSolver<double> solver(param);
+    LBFGSpp::LBFGSBSolver<double> solver(param);
     BezierPatchDistance fun(controlPoints, queryPoint);
 
-    // Die Variablen sind u und v, daher ist die Dimension 2.
-    const int n = 2;
-
-    // Grenzen für u und v (beide im Bereich [0, 1]).
+    int n = 2;
     Eigen::VectorXd lb = Eigen::VectorXd::Constant(n, 0.0);
     Eigen::VectorXd ub = Eigen::VectorXd::Constant(n, 1.0);
 
-    // Erste Schätzung für (u, v).
-    Eigen::VectorXd uv = Eigen::VectorXd::Constant(n, 0.5);
+    Eigen::VectorXd uv = Eigen::VectorXd::Constant(static_cast<Eigen::Index>(n), 0.5);
 
-    // x wird überschrieben, um der beste gefundene Punkt zu sein.
     double fx;
     solver.minimize(fun, uv, fx, lb, ub);
 
