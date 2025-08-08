@@ -205,12 +205,8 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
 
     MPlug controlInputGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aInputGeometry, false, &status);
     CHECK_MSTATUS(status);
-    MPlug controlOrigGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aOriginalGeometry, false, &status);
-    CHECK_MSTATUS(status);
 
     MPlug controlInputGeomElementPlug = controlInputGeomArrayPlug.elementByLogicalIndex(logicalIndex, &status);
-    CHECK_MSTATUS(status);
-    MPlug controlOrigGeomElementPlug = controlOrigGeomArrayPlug.elementByLogicalIndex(logicalIndex, &status);
     CHECK_MSTATUS(status);
 
     MDGModifier modifier;
@@ -220,15 +216,9 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
         if (controlInputGeomElementPlug.connectedTo(connected, true, false) && connected.length() > 0) {
             modifier.disconnect(connected[0], controlInputGeomElementPlug);
         }
-        connected.clear();
-        if (controlOrigGeomElementPlug.connectedTo(connected, true, false) && connected.length() > 0) {
-            modifier.disconnect(connected[0], controlOrigGeomElementPlug);
-        }
         modifier.connect(srcPlug, controlInputGeomElementPlug);
-        modifier.connect(srcPlug, controlOrigGeomElementPlug);
     } else {
         modifier.disconnect(srcPlug, controlInputGeomElementPlug);
-        modifier.disconnect(srcPlug, controlOrigGeomElementPlug);
     }
 
     status = modifier.doIt();
