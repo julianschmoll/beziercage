@@ -180,6 +180,10 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
         return;
     }
 
+    if (destPlug.attribute() != MPxDeformerNode::inputGeom) {
+        return;
+    }
+
     unsigned int logicalIndex = destPlug.parent().logicalIndex(&status);
     CHECK_MSTATUS(status);
 
