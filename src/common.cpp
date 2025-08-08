@@ -201,7 +201,7 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
     MObject controlNode = connectedPlugs[0].node(&status);
     CHECK_MSTATUS(status);
     MFnDependencyNode controlNodeFn(controlNode, &status);
-    CHECK_MSTATUS(status);
+    if (status != MS::kSuccess || controlNodeFn.typeName() != offsetPin::typeName) { return; }
 
     MPlug controlInputGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aInputGeometry, false, &status);
     CHECK_MSTATUS(status);
