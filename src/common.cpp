@@ -221,6 +221,7 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
             0) {
             modifier.disconnect(existingConnections[0], controlInputGeomElementPlug);
         }
+        existingConnections.clear();
         if (controlOrigGeomElementPlug.connectedTo(existingConnections, true, false) && existingConnections.length() >
             0) {
             modifier.disconnect(existingConnections[0], controlOrigGeomElementPlug);
