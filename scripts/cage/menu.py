@@ -48,7 +48,7 @@ def destroy():
 
 
 def _enter_tool_context(*args, **kwargs):  # pylint: disable=unused-argument
-    cage_creator_ctx = cmds.CageCreatorContext()
+    cage_creator_ctx = cmds.cageCreationContext()
     cmds.setToolTo(cage_creator_ctx)
 
 

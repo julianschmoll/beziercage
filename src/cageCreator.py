@@ -28,7 +28,7 @@ def maya_useNewAPI():
 
 class CageCreationContext(omui.MPxContext):
 
-    def __init__(self, cage_creator, name="CageCreatorContext"):
+    def __init__(self, cage_creator, name="cageCreationContext"):
         super(CageCreationContext, self).__init__()
         self.setCursor(omui.MCursor.kCrossHairCursor)
         self.setImage("creation_context_32.png", 0)
@@ -191,7 +191,7 @@ class CageCreationContext(omui.MPxContext):
 
 
 class CageCreationContextCmd(omui.MPxContextCommand):
-    COMMAND_NAME = "CageCreatorContext"
+    command_name = "cageCreationContext"
     cage_creators = {}
     cage_name = None
 
@@ -462,11 +462,11 @@ def initializePlugin(plugin):
             om.MGlobal.displayWarning("Could not add cage Menu")
 
     try:
-        plugin_fn.registerContextCommand(CageCreationContextCmd.COMMAND_NAME,
+        plugin_fn.registerContextCommand(CageCreationContextCmd.command_name,
                                          CageCreationContextCmd.creator)
     except:
         om.MGlobal.displayError("Failed to register context command: %s"
-                                % CageCreationContextCmd.COMMAND_NAME)
+                                % CageCreationContextCmd.command_name)
 
 
 def uninitializePlugin(plugin):
@@ -480,7 +480,7 @@ def uninitializePlugin(plugin):
             om.MGlobal.displayWarning("Could not remove cage Menu")
 
     try:
-        plugin_fn.deregisterContextCommand(CageCreationContextCmd.COMMAND_NAME)
+        plugin_fn.deregisterContextCommand(CageCreationContextCmd.command_name)
     except:
         om.MGlobal.displayError("Failed to deregister context command: %s"
-                                % CageCreationContextCmd.COMMAND_NAME)
+                                % CageCreationContextCmd.command_name)
