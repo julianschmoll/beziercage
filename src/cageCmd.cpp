@@ -175,7 +175,14 @@ MStatus cageCmd::redoIt() {
         MFnDependencyNode fnDep(deformerObj, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MPlug dirtyPlug(deformerObj, bezierCage::aDirty);
-        status = dirtyPlug.setBool(true);
+        unsigned int numElements = dirtyPlug.numElements(&status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        for (unsigned int i = 0; i < numElements; i++) {
+            MPlug elementPlug = dirtyPlug.elementByLogicalIndex(i, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            status = elementPlug.setBool(true);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+        }
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MGlobal::executeCommand("dgdirty " + fnDep.name());
         setResult("Rebound " + fnDep.name());
