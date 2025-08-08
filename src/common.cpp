@@ -2,6 +2,9 @@
 #include <cmath>
 #include <maya/MPoint.h>
 
+#include "offsetPin.hpp"
+#include "cageDeformer.hpp"
+
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||
            path.node().hasFn(MFn::kNurbsCurve) ||
@@ -163,4 +166,61 @@ MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, fl
     }
 
     return deCasteljau(vPoints, u);
+}
+
+void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData) {
+    MStatus status;
+
+    MObject destNode = destPlug.node(&status);
+    CHECK_MSTATUS(status);
+    MFnDependencyNode destNodeFn(destNode, &status);
+    CHECK_MSTATUS(status);
+
+    if (destNodeFn.typeName() != bezierCage::typeName) {
+        return;
+    }
+
+    if (destPlug.attribute() != MPxDeformerNode::inputGeom) {
+        return;
+    }
+
+    unsigned int logicalIndex = destPlug.parent().logicalIndex(&status);
+    CHECK_MSTATUS(status);
+
+    MPlug messagePlug = destNodeFn.findPlug(bezierCage::aControlMessage, false, &status);
+    CHECK_MSTATUS(status);
+
+    MPlugArray connectedPlugs;
+    messagePlug.connectedTo(connectedPlugs, true, false, &status);
+    CHECK_MSTATUS(status);
+
+    if (connectedPlugs.length() == 0) {
+        return;
+    }
+
+    MObject controlNode = connectedPlugs[0].node(&status);
+    CHECK_MSTATUS(status);
+    MFnDependencyNode controlNodeFn(controlNode, &status);
+    if (status != MS::kSuccess || controlNodeFn.typeName() != offsetPin::typeName) { return; }
+
+    MPlug controlInputGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aInputGeometry, false, &status);
+    CHECK_MSTATUS(status);
+
+    MPlug controlInputGeomElementPlug = controlInputGeomArrayPlug.elementByLogicalIndex(logicalIndex, &status);
+    CHECK_MSTATUS(status);
+
+    MDGModifier modifier;
+
+    if (made) {
+        MPlugArray connected;
+        if (controlInputGeomElementPlug.connectedTo(connected, true, false) && connected.length() > 0) {
+            modifier.disconnect(connected[0], controlInputGeomElementPlug);
+        }
+        modifier.connect(srcPlug, controlInputGeomElementPlug);
+    } else {
+        modifier.disconnect(srcPlug, controlInputGeomElementPlug);
+    }
+
+    status = modifier.doIt();
+    CHECK_MSTATUS(status);
 }
