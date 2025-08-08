@@ -670,8 +670,8 @@ std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &contro
     LBFGSpp::LBFGSBParam<double> param;
 
     // We could make this configurable in the future
-    param.epsilon = 1e-5;
-    param.max_iterations = 100;
+    param.epsilon = 1e-2;
+    param.max_iterations = 200;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
     BezierPatchDistance distance(controlPoints, queryPoint);
