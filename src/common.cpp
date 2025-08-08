@@ -2,6 +2,9 @@
 #include <cmath>
 #include <maya/MPoint.h>
 
+#include "offsetPin.hpp"
+#include "cageDeformer.hpp"
+
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||
            path.node().hasFn(MFn::kNurbsCurve) ||
@@ -163,4 +166,68 @@ MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, fl
     }
 
     return deCasteljau(vPoints, u);
+}
+
+void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData) {
+    MStatus status;
+
+    MObject destNode = destPlug.node(&status);
+    CHECK_MSTATUS(status);
+    MFnDependencyNode destNodeFn(destNode, &status);
+    CHECK_MSTATUS(status);
+
+    if (destNodeFn.typeName() != bezierCage::typeName) {
+        return;
+    }
+
+    unsigned int logicalIndex = destPlug.parent().logicalIndex(&status);
+    CHECK_MSTATUS(status);
+
+    MPlug messagePlug = destNodeFn.findPlug(bezierCage::aControlMessage, false, &status);
+    CHECK_MSTATUS(status);
+
+    MPlugArray connectedPlugs;
+    messagePlug.connectedTo(connectedPlugs, true, false, &status);
+    CHECK_MSTATUS(status);
+
+    if (connectedPlugs.length() == 0) {
+        return;
+    }
+
+    MObject controlNode = connectedPlugs[0].node(&status);
+    CHECK_MSTATUS(status);
+    MFnDependencyNode controlNodeFn(controlNode, &status);
+    CHECK_MSTATUS(status);
+
+    MPlug controlInputGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aInputGeometry, false, &status);
+    CHECK_MSTATUS(status);
+    MPlug controlOrigGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aOriginalGeometry, false, &status);
+    CHECK_MSTATUS(status);
+
+    MPlug controlInputGeomElementPlug = controlInputGeomArrayPlug.elementByLogicalIndex(logicalIndex, &status);
+    CHECK_MSTATUS(status);
+    MPlug controlOrigGeomElementPlug = controlOrigGeomArrayPlug.elementByLogicalIndex(logicalIndex, &status);
+    CHECK_MSTATUS(status);
+
+    MDGModifier modifier;
+
+    if (made) {
+        MPlugArray existingConnections;
+        if (controlInputGeomElementPlug.connectedTo(existingConnections, true, false) && existingConnections.length() >
+            0) {
+            modifier.disconnect(existingConnections[0], controlInputGeomElementPlug);
+        }
+        if (controlOrigGeomElementPlug.connectedTo(existingConnections, true, false) && existingConnections.length() >
+            0) {
+            modifier.disconnect(existingConnections[0], controlOrigGeomElementPlug);
+        }
+        modifier.connect(srcPlug, controlInputGeomElementPlug);
+        modifier.connect(srcPlug, controlOrigGeomElementPlug);
+    } else {
+        modifier.disconnect(srcPlug, controlInputGeomElementPlug);
+        modifier.disconnect(srcPlug, controlOrigGeomElementPlug);
+    }
+
+    status = modifier.doIt();
+    CHECK_MSTATUS(status);
 }

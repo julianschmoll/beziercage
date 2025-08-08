@@ -133,7 +133,4 @@ private:
      * @return A vector of MPoints representing the control points of the patch.
      */
     static std::vector<MPoint> getPatchPoints(MArrayDataHandle &matrixArray);
-
-    // This still needs to be implemented:
-    // static void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
 };

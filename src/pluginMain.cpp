@@ -4,6 +4,10 @@
 #include "common.hpp"
 
 #include <maya/MFnPlugin.h>
+#include <maya/MMessage.h>
+#include <maya/MDGMessage.h>
+
+static MCallbackId connectionCallbackId = 0;
 
 
 MStatus initializePlugin(MObject obj) {
@@ -18,6 +22,9 @@ MStatus initializePlugin(MObject obj) {
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   status = plugin.registerNode(offsetPin::typeName, offsetPin::id, offsetPin::creator, offsetPin::initialize);
+  CHECK_MSTATUS_AND_RETURN_IT(status);
+
+  connectionCallbackId = MDGMessage::addConnectionCallback(connectionMonitorCallback, nullptr, &status);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   MThreadPool::init();
@@ -39,6 +46,12 @@ MStatus uninitializePlugin(MObject obj) {
 
   status = plugin.deregisterNode(offsetPin::id);
   CHECK_MSTATUS_AND_RETURN_IT(status);
+
+  if (connectionCallbackId != 0) {
+    status = MMessage::removeCallback(connectionCallbackId);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    connectionCallbackId = 0;
+  }
 
   MThreadPool::release();
 
