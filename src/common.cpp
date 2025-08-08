@@ -216,15 +216,13 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
     MDGModifier modifier;
 
     if (made) {
-        MPlugArray existingConnections;
-        if (controlInputGeomElementPlug.connectedTo(existingConnections, true, false) && existingConnections.length() >
-            0) {
-            modifier.disconnect(existingConnections[0], controlInputGeomElementPlug);
+        MPlugArray connected;
+        if (controlInputGeomElementPlug.connectedTo(connected, true, false) && connected.length() > 0) {
+            modifier.disconnect(connected[0], controlInputGeomElementPlug);
         }
-        existingConnections.clear();
-        if (controlOrigGeomElementPlug.connectedTo(existingConnections, true, false) && existingConnections.length() >
-            0) {
-            modifier.disconnect(existingConnections[0], controlOrigGeomElementPlug);
+        connected.clear();
+        if (controlOrigGeomElementPlug.connectedTo(connected, true, false) && connected.length() > 0) {
+            modifier.disconnect(connected[0], controlOrigGeomElementPlug);
         }
         modifier.connect(srcPlug, controlInputGeomElementPlug);
         modifier.connect(srcPlug, controlOrigGeomElementPlug);
