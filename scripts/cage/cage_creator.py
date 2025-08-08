@@ -316,6 +316,13 @@ class CageCreator:
         if not cmds.objExists(state_node):
             state_node = cmds.createNode("network", name=state_node)
             cmds.addAttr(state_node, ln="state", dt="string")
+            # connect message attribute so on export the state node is exported as well
+            # create message attribute on the state node
+            cmds.addAttr(state_node, ln="deformMessage", at="message")
+            deformer = f"{self.cage_name}_deformer"
+            if cmds.objExists(deformer):
+                cmds.connectAttr(f"{deformer}.message", f"{state_node}.deformMessage", force=True)
+
         cmds.setAttr(f"{state_node}.state", json_str, type="string")
 
 
