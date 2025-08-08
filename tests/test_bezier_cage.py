@@ -82,14 +82,6 @@ class TestBezierCage(unittest.TestCase):
             subdivisionsY=SUBDIVISIONS,
             width=14
         )[0]
-        cmds.displaySmoothness(
-            test_mesh,
-            divisionsU=3,
-            divisionsV=3,
-            pointsWire=16,
-            pointsShaded=4,
-            polygonObject=3
-        )
         cmds.move(0, -0.1, 0, test_mesh)
         cmds.setAttr(f"{test_mesh}.overrideEnabled", 1)
         cmds.setAttr(f"{test_mesh}.overrideDisplayType", 2)
