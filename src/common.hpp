@@ -111,8 +111,8 @@ MPoint deCasteljau(const std::vector<MPoint> &points, float t);
 MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v);
 
 /**
- * Reconnects the offsetPin when the deformer node is moved to match input geometry.
+ * Monitors connections to the deformer's input geometry and updates the `offsetPin` node's connections accordingly.
  * @param[in] srcPlug The source plug of the connection.
- * @param[out] destPlug The destination plug of the connection.
+ * @param[in] destPlug The destination plug of the connection.
  */
 void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void *clientData);
