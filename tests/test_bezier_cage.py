@@ -3,9 +3,10 @@ from pathlib import Path
 import tempfile
 from tests import decorators
 
+import math
 import unittest
 
-SUBDIVISIONS = 200
+VERTICES = 110000
 CONTROL_PATCHES = [
     [
         "test_cage_anchor_0_ctl",
@@ -75,11 +76,16 @@ class TestBezierCage(unittest.TestCase):
         temp_file = Path(tempfile.gettempdir(), "temp.ma")
         cmds.file(rename=temp_file)
 
+        subdivisions = round(math.sqrt(VERTICES))
+        real_vertices = subdivisions * subdivisions
+        if real_vertices != VERTICES:
+            print(f"Input vertex count ({VERTICES}) is not a perfect square, using {real_vertices} instead.")
+
         test_mesh = cmds.polyPlane(
             height=14,
             name="pp",
-            subdivisionsX=SUBDIVISIONS,
-            subdivisionsY=SUBDIVISIONS,
+            subdivisionsX=subdivisions-1,
+            subdivisionsY=subdivisions-1,
             width=14
         )[0]
         cmds.move(0, -0.1, 0, test_mesh)
