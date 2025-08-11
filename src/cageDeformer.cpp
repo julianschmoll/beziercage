@@ -199,7 +199,7 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     u.reserve(numPoints);
     v.reserve(numPoints);
     patchIdx.reserve(numPoints);
-    float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
+    const float thresh = dataBlock.inputValue(aThreshDist, &status).asFloat();
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // gather bind data
