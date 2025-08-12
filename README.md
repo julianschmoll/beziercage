@@ -10,6 +10,30 @@ You can either build the plugin yourself or download the corresponding build for
 
 To successfully load cage in Maya, add the `scripts` subdirectory to the `PYTHONPATH` (or `sys.path` in `userSetup.py`) and load the plugin either by adding the plug-ins path to the `MAYA_PLUG_IN_PATH` environment variable or loading it through the plugin manager UI from within Maya. If the scripts folder is not added correcty, the cage menu items won't be initialized.
 
+### Applying the Deformer
+
+The deformer can either be added via the menu item or with the following Python command:
+
+```python
+from maya import cmds
+
+# calls cage creation context
+context = cmds.cageCreationContext(name="cage1")
+cmds.setToolTo(context)
+
+# Apply the deformer to the current selection with the standard name
+cmds.deformCage()
+
+# Apply to specific objects with a specific name
+cmds.deformCage("object1", "object2", name="cage1")
+
+# trigger recalculation of the deformer
+cmds.deformCage(rebind="cage_name")
+
+# To query all available flags, use
+cmds.deformCage(help=True)
+```
+
 ## Building
 
 1. Clone the repository.
