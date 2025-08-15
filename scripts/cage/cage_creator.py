@@ -374,9 +374,8 @@ class CageCreator:
         LOGGER.info("Creating cage with the following data:")
         LOGGER.info(f"Points: {len(self.points)}")
         LOGGER.info(f"Patches: {len(self.patches_controls)}")
-        meshes = [point.mesh for point in self.points if point.valid]
+        meshes = set(point.mesh for point in self.points if point.valid)
         deformer = f"{self.cage_name}_deformer"
-        needs_rebind = True
 
         if not cmds.pluginInfo("cage", query=True, loaded=True):
             LOGGER.info("Loading bezierCage plugin.")
@@ -388,8 +387,13 @@ class CageCreator:
 
         if not cmds.objExists(deformer):
             LOGGER.info(f"Creating deformer {deformer} for meshes: {meshes}")
-            deformer = cmds.deformCage(meshes, name=f"{self.cage_name}_deformer")
-            needs_rebind = False
+            deformer = cmds.deformCage(list(meshes), name=f"{self.cage_name}_deformer")
+        else:
+            connected_meshes = set(cmds.deformer(deformer,q=True, g=True))
+            missing_meshes = meshes - connected_meshes
+            for mesh in missing_meshes:
+                LOGGER.info(f"Adding mesh {mesh} to {deformer}")
+                cmds.deformer(deformer, edit=True, geometry=mesh)
 
         offset_pin = f"{self.cage_name}_control_node"
         if not cmds.objExists(offset_pin):
@@ -397,7 +401,7 @@ class CageCreator:
                 "offsetPin", name=f"{self.cage_name}_control_node"
             )
 
-        connect_control_node(offset_pin, deformer)
+        match_geometry_connections(offset_pin, deformer)
 
         for anchor in self.points:
             plug = f"{anchor.name}_srt.offsetParentMatrix"
@@ -430,8 +434,7 @@ class CageCreator:
                     f"{deformer}.patchBindPreMatrices[{patch_idx}].bindPreMatrix[{point_idx}]",
                     force=True
                 )
-        if needs_rebind:
-            cmds.deformCage(rebind=deformer)
+        cmds.deformCage(rebind=deformer)
 
     def set_proximity_threshold(self, threshold):
         """Sets the proximity threshold for point reuse.
@@ -442,7 +445,7 @@ class CageCreator:
         self.proximity_threshold = threshold
 
 
-def connect_control_node(control_node, deformer):
+def match_geometry_connections(control_node, deformer):
     """Connects the control node with matching inputs from deformer.
 
     Args:
