@@ -90,6 +90,15 @@ class CageCreationContext(omui.MPxContext):
         cmds.hotkey(k="b", alt=False, ctl=False, name=kRadiusPressedCommand)
         cmds.hotkey(k="b", alt=False, ctl=False, rn=kRadiusReleasedCommand)
 
+        cmds.headsUpDisplay(
+            'HUDCCMessage',
+            section=5,
+            block=2,
+            blockSize='small',
+            label="Hold 'b' and drag to adjust merge distance.",
+            labelFontSize='large',
+        )
+        _update_hud_distance(1.0)
         self.cage_creator.offset_distance = self.offset_distance
         self.cage_creator.update_state()
         self.undo_redo_script_job()
@@ -107,6 +116,8 @@ class CageCreationContext(omui.MPxContext):
             name=self.original_b_pressed_command,
             releaseName=self.original_b_released_command
         )
+        cmds.headsUpDisplay("HUDCCMessage", remove=1)
+        cmds.headsUpDisplay('HUDCCDistance', remove=1)
         self.undo_redo_script_job(register=False)
 
         self.completeAction()
@@ -172,9 +183,11 @@ class CageCreationContext(omui.MPxContext):
             dx = current_position[0] - self.start_position[0]
             dy = current_position[1] - self.start_position[1]
             self.circle_diameter = (dx ** 2 + dy ** 2) ** 0.5 * 2
+            zoom_fac = get_camera_distance_to_center_of_interest()
+            treshold = self.circle_diameter * (zoom_fac / 4000.0)
+            _update_hud_distance(treshold)
 
             start_point = om.MPoint(self.start_position[0], self.start_position[1], 0)
-
             draw_manager.beginDrawable()
             draw_manager.setColor(om.MColor((120 / 255.0, 204 / 255.0, 239 / 255.0)))
             draw_manager.setLineStyle(omr.MUIDrawManager.kSolid)
@@ -182,12 +195,24 @@ class CageCreationContext(omui.MPxContext):
             draw_manager.circle2d(start_point, self.circle_diameter / 2, False)
             draw_manager.endDrawable()
 
-            zoom_fac = get_camera_distance_to_center_of_interest()
-
-            self.cage_creator.set_proximity_threshold(self.circle_diameter * (zoom_fac / 4000.0))
+            self.cage_creator.set_proximity_threshold(treshold)
 
     def completeAction(self):
         self.cage_creator.create()
+
+
+def _update_hud_distance(distance):
+    if cmds.headsUpDisplay('HUDCCDistance', exists=True):
+        cmds.headsUpDisplay('HUDCCDistance', remove=True)b
+    cmds.headsUpDisplay(
+        'HUDCCDistance',
+        section=5,
+        block=1,
+        blockSize='small',
+        label=f"Current Threshold Distance: {str(round(distance,2))}",
+        labelFontSize='large',
+    )
+    cmds.refresh(f=1)
 
 
 class CageCreationContextCmd(omui.MPxContextCommand):
