@@ -1,6 +1,7 @@
 #include "cageCmd.hpp"
 #include "cageDeformer.hpp"
 #include "offsetPin.hpp"
+#include "offsetCmd.hpp"
 #include "common.hpp"
 
 #include <maya/MFnPlugin.h>
@@ -24,6 +25,9 @@ MStatus initializePlugin(MObject obj) {
   status = plugin.registerNode(offsetPin::typeName, offsetPin::id, offsetPin::creator, offsetPin::initialize);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
+  status = plugin.registerCommand(offsetCmd::kName, offsetCmd::creator, offsetCmd::newSyntax);
+  CHECK_MSTATUS_AND_RETURN_IT(status);
+
   connectionCallbackId = MDGMessage::addConnectionCallback(connectionMonitorCallback, nullptr, &status);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -42,6 +46,9 @@ MStatus uninitializePlugin(MObject obj) {
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   status = plugin.deregisterNode(bezierCage::id);
+  CHECK_MSTATUS_AND_RETURN_IT(status);
+
+  status = plugin.deregisterCommand(offsetCmd::kName);
   CHECK_MSTATUS_AND_RETURN_IT(status);
 
   status = plugin.deregisterNode(offsetPin::id);
