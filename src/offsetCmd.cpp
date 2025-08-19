@@ -8,6 +8,10 @@
 #include <maya/MPlug.h>
 #include <maya/MPlugArray.h>
 #include <maya/MFnMatrixData.h>
+#include <maya/MSyntax.h>
+#include <maya/MSyntax.h>
+#include <maya/MSyntax.h>
+#include <maya/MSyntax.h>
 
 const char *offsetCmd::kName = "offsetPin";
 
@@ -15,8 +19,8 @@ const char *offsetCmd::kNameFlagShort = "-n";
 const char *offsetCmd::kNameFlagLong = "-name";
 const char *offsetCmd::kEditFlagShort = "-e";
 const char *offsetCmd::kEditFlagLong = "-edit";
-const char *offsetCmd::kAddFlagShort = "-a";
-const char *offsetCmd::kAddFlagLong = "-add";
+const char *offsetCmd::kAddFlagShort = "-am";
+const char *offsetCmd::kAddFlagLong = "-add_matrix";
 const char *offsetCmd::kMatrixFlagShort = "-m";
 const char *offsetCmd::kMatrixFlagLong = "-matrix";
 
@@ -29,7 +33,7 @@ MSyntax offsetCmd::newSyntax() {
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
     syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
     syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
-    syntax.addFlag(kMatrixFlagShort, kMatrixFlagLong, MSyntax::kLong);
+    syntax.addFlag(kMatrixFlagShort, kMatrixFlagLong, MSyntax::kString);
 
     syntax.setObjectType(MSyntax::kSelectionList);
     syntax.useSelectionAsDefault(true);
@@ -68,12 +72,13 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
     MArgDatabase argData(syntax(), args, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
+    commandMode_ = kCreate;
+
     if (argData.isFlagSet(kEditFlagShort)) {
         commandMode_ = kEdit;
-    } else if (argData.isFlagSet(kAddFlagShort)) {
+    }
+    if (argData.isFlagSet(kAddFlagShort)) {
         commandMode_ = kAdd;
-    } else {
-        commandMode_ = kCreate;
     }
 
     if (argData.isFlagSet(kNameFlagShort)) {
@@ -83,7 +88,7 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
 
     if (argData.isFlagSet(kMatrixFlagShort)) {
         MString matrixStr;
-        argData.getFlagArgument("matrix", 0, matrixStr);
+        argData.getFlagArgument(kMatrixFlagShort, 0, matrixStr);
         MStringArray matrixValues;
         matrixStr.split(' ', matrixValues);
         if (matrixValues.length() % 16 != 0) {
