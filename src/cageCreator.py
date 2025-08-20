@@ -203,7 +203,7 @@ class CageCreationContext(omui.MPxContext):
 
 def _update_hud_distance(distance):
     if cmds.headsUpDisplay('HUDCCDistance', exists=True):
-        cmds.headsUpDisplay('HUDCCDistance', remove=True)b
+        cmds.headsUpDisplay('HUDCCDistance', remove=True)
     cmds.headsUpDisplay(
         'HUDCCDistance',
         section=5,
