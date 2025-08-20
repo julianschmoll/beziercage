@@ -12,9 +12,28 @@
 #include <maya/MFnTypedAttribute.h>
 #include <maya/MFnCompoundAttribute.h>
 
+#include <vector>
+#include <memory>
+
+struct offsetPinTaskData {
+    unsigned int numMatrices;
+    std::vector<MMatrix> outputMatrices;
+    std::vector<MIntArray> vertexIndices;
+    std::vector<MFloatArray> baryCoords;
+    std::vector<MMatrix> triMatrices;
+    std::vector<MVector> offsetVectors;
+    std::vector<int> geomIndices;
+    std::vector<std::unique_ptr<MFnMesh>>* meshCache;
+};
+
+struct offsetPinThreadData {
+    unsigned int start, end, numTasks;
+    offsetPinTaskData* data;
+};
+
 class offsetPin : public MPxNode {
 public:
-    offsetPin() = default;
+    offsetPin();
 
     ~offsetPin() override = default;
 
@@ -47,6 +66,9 @@ public:
     static MObject aGeometryLookup;
     static MObject aFaceVertices;
 
+    std::vector<offsetPinThreadData> MThreadData;
+    offsetPinTaskData MTaskData;
+
 private:
     /**
      * Builds a lookup table for the original geometry to store face vertices.
@@ -75,7 +97,7 @@ private:
      * @param[in,out] data The data block containing input and output values.
      * @return MStatus indicating success or failure.
      */
-    static MStatus setOutput(MDataBlock &data);
+    MStatus setOutput(MDataBlock &data);
 
     /**
      * Retrieves the vertex indices of a triangle in a specific geometry.
@@ -116,4 +138,8 @@ private:
         const MMatrix &bindTriangleMatrix,
         const MVector *offsetVector = nullptr
     );
+
+    void CreateThreadData();
+    static void CreateTasks(void* pData, MThreadRootTask* pRoot);
+    static MThreadRetVal ThreadEvaluate(void* pParam);
 };

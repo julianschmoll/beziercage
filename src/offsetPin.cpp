@@ -19,6 +19,7 @@
 #include "common.hpp"
 #include <limits>
 #include <memory>
+#include <thread>
 
 // This ID is registered with Autodesk (https://adndata.autodesk.io/maya).
 MTypeId offsetPin::id(0x0013f8c0);
@@ -40,6 +41,16 @@ MObject offsetPin::aBindGeomIndex;
 
 MObject offsetPin::aGeometryLookup;
 MObject offsetPin::aFaceVertices;
+
+
+offsetPin::offsetPin(): MTaskData() {
+    unsigned int kTaskCount = std::thread::hardware_concurrency();
+    if (kTaskCount == 0) { kTaskCount = 1; }
+#if DEBUG_LOG
+    MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for offsetPin node.");
+#endif
+    MThreadData.resize(kTaskCount);
+}
 
 void *offsetPin::creator() {
     return new offsetPin();
@@ -446,52 +457,102 @@ MStatus offsetPin::setOutput(MDataBlock &data) {
         }
     }
 
-    MIntArray vertexIndices(3);
-    MFloatArray baryCoordsArr(3);
+    const unsigned int numMatrices = inputMatrixArray.elementCount();
+    MTaskData.numMatrices = numMatrices;
+    MTaskData.meshCache = &meshCache;
+    MTaskData.vertexIndices.resize(numMatrices);
+    MTaskData.baryCoords.resize(numMatrices);
+    MTaskData.triMatrices.resize(numMatrices);
+    MTaskData.offsetVectors.resize(numMatrices);
+    MTaskData.geomIndices.resize(numMatrices);
+    MTaskData.outputMatrices.resize(numMatrices);
 
-    for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
+    for (unsigned int index = 0; index < numMatrices; ++index) {
         if (bindDataArray.elementCount() <= index) continue;
         bindDataArray.jumpToArrayElement(index);
 
         MDataHandle bindElem = bindDataArray.inputValue();
-
+        MIntArray vertexIndices(3);
         const int *vertPtr = bindElem.child(aBindVertexIndices).asInt3();
         vertexIndices[0] = vertPtr[0];
         vertexIndices[1] = vertPtr[1];
         vertexIndices[2] = vertPtr[2];
-
+        MTaskData.vertexIndices[index] = vertexIndices;
+        MFloatArray baryCoordsArr(3);
         const double *baryPtr = bindElem.child(aBindCoordinates).asDouble3();
         baryCoordsArr[0] = static_cast<float>(baryPtr[0]);
         baryCoordsArr[1] = static_cast<float>(baryPtr[1]);
         baryCoordsArr[2] = static_cast<float>(baryPtr[2]);
+        MTaskData.baryCoords[index] = baryCoordsArr;
+        MTaskData.triMatrices[index] = bindElem.child(aBindTriangleMatrix).asMatrix();
+        MTaskData.offsetVectors[index] = bindElem.child(aBindOffsetVector).asVector();
+        MTaskData.geomIndices[index] = bindElem.child(aBindGeomIndex).asInt();
+    }
+    CreateThreadData();
+    MThreadPool::newParallelRegion(CreateTasks, static_cast<void *>(&MThreadData[0]));
+    for (unsigned int index = 0; index < numMatrices; ++index) {
+        MDataHandle elem = builder.addElement(index);
+        elem.setMMatrix(MTaskData.outputMatrices[index]);
+    }
+    outputMatrixArray.set(builder);
+    outputMatrixArray.setAllClean();
+    return MS::kSuccess;
+}
 
-        MMatrix triMatrix = bindElem.child(aBindTriangleMatrix).asMatrix();
-        MVector offsetVector = bindElem.child(aBindOffsetVector).asVector();
-        int geomIndex = bindElem.child(aBindGeomIndex).asInt();
+void offsetPin::CreateThreadData() {
+    int taskCount = static_cast<int>(MThreadData.size());
+    unsigned int taskLength = (MTaskData.numMatrices + taskCount - 1) / taskCount;
+    unsigned int start = 0, end = taskLength;
 
+    for (int i = 0; i < taskCount; ++i) {
+        if (i == taskCount - 1) { end = MTaskData.numMatrices; }
+        MThreadData[i] = {start, end, static_cast<unsigned int>(taskCount), &MTaskData};
+        start += taskLength;
+        end += taskLength;
+    }
+}
+
+void offsetPin::CreateTasks(void *pData, MThreadRootTask *pRoot) {
+    auto *pThreadData = static_cast<offsetPinThreadData *>(pData);
+    const unsigned int taskCount = pThreadData[0].numTasks;
+
+    for (unsigned int i = 0; i < taskCount; ++i) {
+        MThreadPool::createTask(ThreadEvaluate, static_cast<void *>(&pThreadData[i]), pRoot);
+    }
+    MThreadPool::executeAndJoin(pRoot);
+}
+
+MThreadRetVal offsetPin::ThreadEvaluate(void *pParam) {
+    const auto *threadData = static_cast<offsetPinThreadData *>(pParam);
+    offsetPinTaskData *data = threadData->data;
+    const auto &vertexIndices = data->vertexIndices;
+    const auto &baryCoords = data->baryCoords;
+    const auto &triMatrices = data->triMatrices;
+    const auto &offsetVectors = data->offsetVectors;
+    const auto &geomIndices = data->geomIndices;
+    auto &outputMatrices = data->outputMatrices;
+    const auto &meshCache = *data->meshCache;
+
+    for (unsigned int index = threadData->start; index < threadData->end; ++index) {
+        if (index >= data->numMatrices) continue;
+
+        int geomIndex = geomIndices[index];
         if (geomIndex < 0 || geomIndex >= static_cast<int>(meshCache.size())) continue;
+
         MFnMesh *fnMesh = meshCache[geomIndex].get();
         if (!fnMesh) continue;
 
         MPoint A, B, C;
-        fnMesh->getPoint(vertexIndices[0], A, MSpace::kWorld);
-        fnMesh->getPoint(vertexIndices[1], B, MSpace::kWorld);
-        fnMesh->getPoint(vertexIndices[2], C, MSpace::kWorld);
+        fnMesh->getPoint(vertexIndices[index][0], A, MSpace::kWorld);
+        fnMesh->getPoint(vertexIndices[index][1], B, MSpace::kWorld);
+        fnMesh->getPoint(vertexIndices[index][2], C, MSpace::kWorld);
 
-        MMatrix outMatrix = calculateOutputMatrix(
-            baryCoordsArr,
-            A,
-            B,
-            C,
-            triMatrix,
-            &offsetVector
+        outputMatrices[index] = calculateOutputMatrix(
+            baryCoords[index],
+            A, B, C,
+            triMatrices[index],
+            &offsetVectors[index]
         );
-
-        MDataHandle elem = builder.addElement(index);
-        elem.setMMatrix(outMatrix);
     }
-
-    outputMatrixArray.set(builder);
-    outputMatrixArray.setAllClean();
-    return MS::kSuccess;
+    return 0;
 }
