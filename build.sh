@@ -36,9 +36,10 @@ cd "$builddir"
 
 echo "Building cage for Maya $1 on $os"
 
-LOG_LEVEL_VALUE=1 # Default to ERROR
+LOG_LEVEL_VALUE=0  # no logging by default
 if [ -n "$2" ]; then
   case "${2^^}" in
+    ERROR)  LOG_LEVEL_VALUE=1 ;;
     INFO)  LOG_LEVEL_VALUE=2 ;;
     DEBUG) LOG_LEVEL_VALUE=3 ;;
   esac

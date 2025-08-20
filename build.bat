@@ -24,7 +24,8 @@ cd "%builddir%"
 
 echo Building cage for Maya %1 on Windows.
 
-set "LOG_LEVEL_VALUE=1"
+set "LOG_LEVEL_VALUE=0"
+if /I "%2"=="ERROR" set "LOG_LEVEL_VALUE=1"
 if /I "%2"=="INFO" set "LOG_LEVEL_VALUE=2"
 if /I "%2"=="DEBUG" set "LOG_LEVEL_VALUE=3"
 

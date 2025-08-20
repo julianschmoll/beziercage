@@ -9,7 +9,7 @@ add_subdirectory(src)
 
 # 1: Error, 2: Info, 3: Debug
 if(NOT DEFINED LOG_LEVEL)
-    set(LOG_LEVEL 1)
+    set(LOG_LEVEL 0)
 endif()
 
 target_compile_definitions(cage PUBLIC LOG_LEVEL=${LOG_LEVEL})
