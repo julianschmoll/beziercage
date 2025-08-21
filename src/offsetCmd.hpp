@@ -29,13 +29,11 @@ public:
     static const char *kEditFlagLong;
     static const char *kAddFlagShort;
     static const char *kAddFlagLong;
-    static const char *kMatrixFlagShort;
-    static const char *kMatrixFlagLong;
 
 private:
     enum CommandMode {
         kCreate,
-        kEditMatrix,
+        kEdit,
         kAdd
     };
 
@@ -48,7 +46,6 @@ private:
     MString nodeName_;
     int matrixIndex_ = -1;
     MSelectionList geometryList_;
-    MMatrix matrix_;
     MDGModifier dgModifier_;
     MObject pinNode_;
 };

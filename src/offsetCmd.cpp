@@ -19,10 +19,8 @@ const char *offsetCmd::kNameFlagShort = "-n";
 const char *offsetCmd::kNameFlagLong = "-name";
 const char *offsetCmd::kEditFlagShort = "-e";
 const char *offsetCmd::kEditFlagLong = "-edit";
-const char *offsetCmd::kAddFlagShort = "-am";
-const char *offsetCmd::kAddFlagLong = "-add_matrix";
-const char *offsetCmd::kMatrixFlagShort = "-m";
-const char *offsetCmd::kMatrixFlagLong = "-matrix";
+const char *offsetCmd::kAddFlagShort = "-add";
+const char *offsetCmd::kAddFlagLong = "-add";
 
 void *offsetCmd::creator() {
     return new offsetCmd();
@@ -33,8 +31,6 @@ MSyntax offsetCmd::newSyntax() {
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
     syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
     syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
-    syntax.addFlag(kMatrixFlagShort, kMatrixFlagLong, MSyntax::kDouble);
-    syntax.makeFlagMultiUse(kMatrixFlagShort);
 
     syntax.setObjectType(MSyntax::kSelectionList);
     syntax.useSelectionAsDefault(true);
@@ -56,7 +52,7 @@ MStatus offsetCmd::redoIt() {
     switch (commandMode_) {
         case kCreate:
             return CreatePinNode();
-        case kEditMatrix:
+        case kEdit:
             return EditMatrix();
         case kAdd:
             return AddMatrix();
@@ -76,7 +72,7 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
     commandMode_ = kCreate;
 
     if (argData.isFlagSet(kEditFlagShort)) {
-        commandMode_ = kEditMatrix;
+        commandMode_ = kEdit;
     }
     if (argData.isFlagSet(kAddFlagShort)) {
         commandMode_ = kAdd;
@@ -86,42 +82,8 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
         status = argData.getFlagArgument(kNameFlagShort, 0, nodeName_);
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
-
-    if (argData.isFlagSet(kMatrixFlagShort)) {
-        unsigned int numMatrixArgs = argData.numberOfFlagUses(kMatrixFlagShort);
-        if (numMatrixArgs != 16) {
-            MGlobal::displayError("Matrix flag requires exactly 16 values for a 4x4 matrix.");
-            return MS::kFailure;
-        }
-
-        MGlobal::displayInfo(MString("Matrix flag used ") + numMatrixArgs + " times.");
-        MArgList argList;
-
-        for (unsigned int i = 0; i < numMatrixArgs; ++i) {
-            argData.getFlagArgumentList(kMatrixFlagShort, i, argList);
-            double value = argList.asDouble(i, &status);
-            CHECK_MSTATUS_AND_RETURN_IT(status);
-            matrix_[i / 4][i % 4] = value;
-        }
-
-#if DEBUG_LOG
-        MString matrixStr = "Matrix set to: [";
-        for (int row = 0; row < 4; ++row) {
-            for (int col = 0; col < 4; ++col) {
-                matrixStr += std::to_string(matrix_[row][col]).c_str();
-                if (col < 3) matrixStr += ", ";
-            }
-        }
-        MGlobal::displayInfo(matrixStr + "]");
-#endif
-    }
-
     status = argData.getObjects(geometryList_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-
-#if DEBUG_LOG
-    MGlobal::displayInfo("Succesfully parsed arguments for offsetCmd.");
-#endif
 
     return MS::kSuccess;
 }
@@ -145,43 +107,66 @@ MStatus offsetCmd::CreatePinNode() {
     MPlug origGeomPlug = pinFn.findPlug(offsetPin::aOriginalGeometry, false, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    for (unsigned int i = 0; i < geometryList_.length(); ++i) {
-        MDagPath geomPath;
-        status = geometryList_.getDagPath(i, geomPath);
-        if (status != MS::kSuccess) {
-            MGlobal::displayError("Could not find a mesh for object at index " + MString(std::to_string(i).c_str()));
-            return status;
-        }
-        status = GetShapeNode(geomPath);
-        if (status != MS::kSuccess) {
-            MGlobal::displayError("Could not find valid geometry to connect node to.");
-            return status;
-        }
-
-        MFnDependencyNode geomFn(geomPath.node());
-        MPlug outMeshPlug = geomFn.findPlug("outMesh", false, &status);
-        if (status != MS::kSuccess) {
-            outMeshPlug = geomFn.findPlug("worldMesh", false, &status).elementByLogicalIndex(0);
-        }
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(i, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(i, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-
-        dgModifier_.connect(outMeshPlug, inGeomElementPlug);
-        dgModifier_.connect(outMeshPlug, origGeomElementPlug);
+    MDagPath geomPath;
+    status = geometryList_.getDagPath(0, geomPath);
+    if (status != MS::kSuccess) {
+        MGlobal::displayError("Could not find a mesh for object at index 0");
+        return status;
     }
+    status = GetShapeNode(geomPath);
+    if (status != MS::kSuccess) {
+        MGlobal::displayError("Could not find valid geometry to connect node to.");
+        return status;
+    }
+    MFnDependencyNode geomFn(geomPath.node());
+    MPlug outMeshPlug = geomFn.findPlug("outMesh", false, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MPlug worldMeshPlug = geomFn.findPlug("worldMesh", false, &status).elementByLogicalIndex(0);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
+    MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(0, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(0, &status);
+    MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(0, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    MFnMatrixData matrixData;
-    MObject matrixObj = matrixData.create(matrix_, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
+
+    dgModifier_.connect(worldMeshPlug, inGeomElementPlug);
+    dgModifier_.connect(outMeshPlug, origGeomElementPlug);
+
+    for (unsigned int i = 1; i < geometryList_.length(); ++i) {
+        unsigned int index = i - 1;
+
+        MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MPlug outMatrixPlug = pinFn.findPlug(offsetPin::aOutputMatrix, false, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(index, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        MPlug outMatrixElementPlug = outMatrixPlug.elementByLogicalIndex(index, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        status = geometryList_.getDagPath(i, geomPath);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MFnDagNode dagFn(geomPath.node());
+        if (geomPath.node().hasFn(MFn::kTransform)) {
+            MFnTransform transformFn(geomPath.node(), &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            MMatrix matrix = transformFn.transformation().asMatrix();
+
+            MFnMatrixData matrixDataFn;
+            MObject matrixObj = matrixDataFn.create(matrix, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
+
+            MPlug offsetParentMatrixPlug = transformFn.findPlug("offsetParentMatrix", false, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            dgModifier_.connect(outMatrixElementPlug, offsetParentMatrixPlug);
+        } else {
+            MGlobal::displayError("Node is not a transform. Cannot extract matrix.");
+            return MS::kFailure;
+        }
+    }
 
     setResult(nodeName_);
 
