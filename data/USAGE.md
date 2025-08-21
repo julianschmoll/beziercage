@@ -24,7 +24,7 @@ cmds.deformCage()
 cmds.deformCage("object1", "object2", name="cage1")
 
 # trigger recalculation of the deformer
-cmds.deformCage(rebind="cage_name")
+cmds.deformCage(name="cage_name", rebind=True)
 
 # To query all available flags, use
 cmds.deformCage(help=True)

@@ -31,7 +31,7 @@ MSyntax cageCmd::newSyntax() {
 
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
     syntax.addFlag(kHelpFlagShort, kHelpFlagLong, MSyntax::kBoolean);
-    syntax.addFlag(kRebindFlagShort, kRebindFlagLong, MSyntax::kString);
+    syntax.addFlag(kRebindFlagShort, kRebindFlagLong, MSyntax::kBoolean);
 
     // Allows between 1 and 255 objects to be deformed, 0 for help flag
     syntax.setObjectType(MSyntax::kSelectionList, 0, 255);
@@ -123,12 +123,15 @@ MStatus cageCmd::GatherCommandArguments(const MArgList &args) {
         CHECK_MSTATUS_AND_RETURN_IT(status);
     }
     if (argData.isFlagSet(kRebindFlagShort)) {
+        if (!argData.isFlagSet(kNameFlagShort)) {
+            MGlobal::displayError("Rebind flag requires a name to be specified.");
+            return MS::kFailure;
+        }
         executedCommand = kCommandRebind;
-        MString cageNode = argData.flagArgumentString(kRebindFlagShort, 0, &status);
         MSelectionList slist;
-        status = slist.add(cageNode);
+        status = slist.add(name_);
         if (status != MS::kSuccess || slist.length() == 0) {
-            MGlobal::displayError("There is no node named: " + cageNode);
+            MGlobal::displayError("There is no node named: " + name_);
             return MS::kFailure;
         }
         status = slist.getDependNode(0, oCageNode);
