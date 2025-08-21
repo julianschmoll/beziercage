@@ -33,7 +33,8 @@ MSyntax offsetCmd::newSyntax() {
     syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
     syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
     syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
-    syntax.addFlag(kMatrixFlagShort, kMatrixFlagLong, MSyntax::kString);
+    syntax.addFlag(kMatrixFlagShort, kMatrixFlagLong, MSyntax::kDouble);
+    syntax.makeFlagMultiUse(kMatrixFlagShort);
 
     syntax.setObjectType(MSyntax::kSelectionList);
     syntax.useSelectionAsDefault(true);
@@ -55,10 +56,10 @@ MStatus offsetCmd::redoIt() {
     switch (commandMode_) {
         case kCreate:
             return CreatePinNode();
-        case kEdit:
-            return EditPinNode();
+        case kEditMatrix:
+            return EditMatrix();
         case kAdd:
-            return AddMatrices();
+            return AddMatrix();
     }
     return MS::kFailure;
 }
@@ -75,7 +76,7 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
     commandMode_ = kCreate;
 
     if (argData.isFlagSet(kEditFlagShort)) {
-        commandMode_ = kEdit;
+        commandMode_ = kEditMatrix;
     }
     if (argData.isFlagSet(kAddFlagShort)) {
         commandMode_ = kAdd;
@@ -87,27 +88,40 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
     }
 
     if (argData.isFlagSet(kMatrixFlagShort)) {
-        MString matrixStr;
-        argData.getFlagArgument(kMatrixFlagShort, 0, matrixStr);
-        MStringArray matrixValues;
-        matrixStr.split(' ', matrixValues);
-        if (matrixValues.length() % 16 != 0) {
-            MGlobal::displayError("Matrix list must contain a multiple of 16 values.");
+        unsigned int numMatrixArgs = argData.numberOfFlagUses(kMatrixFlagShort);
+        if (numMatrixArgs != 16) {
+            MGlobal::displayError("Matrix flag requires exactly 16 values for a 4x4 matrix.");
             return MS::kFailure;
         }
-        for (unsigned int i = 0; i < matrixValues.length() / 16; ++i) {
-            MMatrix m;
-            for (int row = 0; row < 4; ++row) {
-                for (int col = 0; col < 4; ++col) {
-                    m[row][col] = matrixValues[i * 16 + row * 4 + col].asDouble();
-                }
-            }
-            matrixList_.push_back(m);
+
+        MGlobal::displayInfo(MString("Matrix flag used ") + numMatrixArgs + " times.");
+        MArgList argList;
+
+        for (unsigned int i = 0; i < numMatrixArgs; ++i) {
+            argData.getFlagArgumentList(kMatrixFlagShort, i, argList);
+            double value = argList.asDouble(i, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            matrix_[i / 4][i % 4] = value;
         }
+
+#if DEBUG_LOG
+        MString matrixStr = "Matrix set to: [";
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                matrixStr += std::to_string(matrix_[row][col]).c_str();
+                if (col < 3) matrixStr += ", ";
+            }
+        }
+        MGlobal::displayInfo(matrixStr + "]");
+#endif
     }
 
     status = argData.getObjects(geometryList_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
+
+#if DEBUG_LOG
+    MGlobal::displayInfo("Succesfully parsed arguments for offsetCmd.");
+#endif
 
     return MS::kSuccess;
 }
@@ -134,9 +148,15 @@ MStatus offsetCmd::CreatePinNode() {
     for (unsigned int i = 0; i < geometryList_.length(); ++i) {
         MDagPath geomPath;
         status = geometryList_.getDagPath(i, geomPath);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
+        if (status != MS::kSuccess) {
+            MGlobal::displayError("Could not find a mesh for object at index " + MString(std::to_string(i).c_str()));
+            return status;
+        }
         status = GetShapeNode(geomPath);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
+        if (status != MS::kSuccess) {
+            MGlobal::displayError("Could not find valid geometry to connect node to.");
+            return status;
+        }
 
         MFnDependencyNode geomFn(geomPath.node());
         MPlug outMeshPlug = geomFn.findPlug("outMesh", false, &status);
@@ -156,19 +176,19 @@ MStatus offsetCmd::CreatePinNode() {
 
     MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    for (unsigned int i = 0; i < matrixList_.size(); ++i) {
-        MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(i, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        MFnMatrixData matrixData;
-        MObject matrixObj = matrixData.create(matrixList_[i], &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
-    }
+    MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(0, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MFnMatrixData matrixData;
+    MObject matrixObj = matrixData.create(matrix_, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
+
+    setResult(nodeName_);
 
     return dgModifier_.doIt();
 }
 
-MStatus offsetCmd::EditPinNode() {
+MStatus offsetCmd::EditMatrix() {
     MStatus status;
     MSelectionList sel;
     status = sel.add(nodeName_);
@@ -176,27 +196,14 @@ MStatus offsetCmd::EditPinNode() {
     status = sel.getDependNode(0, pinNode_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    if (matrixIndex_ < 0 || matrixList_.empty()) {
-        MGlobal::displayError("Matrix index and matrix value must be provided for edit mode.");
-        return MS::kFailure;
-    }
-
     MFnDependencyNode pinFn(pinNode_);
     MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(matrixIndex_, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-
-    MFnMatrixData matrixData;
-    MObject matrixObj = matrixData.create(matrixList_[0], &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
-
     return dgModifier_.doIt();
 }
 
-MStatus offsetCmd::AddMatrices() {
+MStatus offsetCmd::AddMatrix() {
     MStatus status;
     MSelectionList sel;
     status = sel.add(nodeName_);
@@ -209,15 +216,6 @@ MStatus offsetCmd::AddMatrices() {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     unsigned int nextIndex = inMatrixPlug.numElements();
-
-    for (unsigned int i = 0; i < matrixList_.size(); ++i) {
-        MPlug matrixElementPlug = inMatrixPlug.elementByLogicalIndex(nextIndex + i, &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        MFnMatrixData matrixData;
-        MObject matrixObj = matrixData.create(matrixList_[i], &status);
-        CHECK_MSTATUS_AND_RETURN_IT(status);
-        dgModifier_.newPlugValue(matrixElementPlug, matrixObj);
-    }
 
     return dgModifier_.doIt();
 }

@@ -35,20 +35,20 @@ public:
 private:
     enum CommandMode {
         kCreate,
-        kEdit,
+        kEditMatrix,
         kAdd
     };
 
     MStatus ParseArguments(const MArgList &args);
     MStatus CreatePinNode();
-    MStatus EditPinNode();
-    MStatus AddMatrices();
+    MStatus EditMatrix();
+    MStatus AddMatrix();
 
     CommandMode commandMode_ = kCreate;
     MString nodeName_;
     int matrixIndex_ = -1;
     MSelectionList geometryList_;
-    std::vector<MMatrix> matrixList_;
+    MMatrix matrix_;
     MDGModifier dgModifier_;
     MObject pinNode_;
 };
