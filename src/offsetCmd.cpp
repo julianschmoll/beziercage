@@ -30,17 +30,16 @@ void *offsetCmd::creator() {
 
 MSyntax offsetCmd::newSyntax() {
     MSyntax syntax;
-    MStatus status;
-    status = syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
-    if (!status) {
+    MStatus status = syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
+    if (status != MS::kSuccess) {
         MGlobal::displayError("Failed to add name flag to syntax.");
     }
     status = syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
-    if (!status) {
+    if (status != MS::kSuccess) {
         MGlobal::displayError("Failed to add add flag to syntax.");
     }
     status = syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
-    if (!status) {
+    if (status != MS::kSuccess) {
         MGlobal::displayError("Failed to add edit flag to syntax.");
     }
 
@@ -128,13 +127,32 @@ MStatus offsetCmd::ConnectPin(MFnDependencyNode &pinFn) {
     MPlug worldMeshPlug = geomFn.findPlug("worldMesh", false, &status).elementByLogicalIndex(0);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(nextIndex, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(nextIndex, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+    bool alreadyConnected = false;
+    for (unsigned int i = 0; i < inGeomPlug.numElements(); ++i) {
+        MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(i, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    dgModifier_.connect(worldMeshPlug, inGeomElementPlug);
-    dgModifier_.connect(outMeshPlug, origGeomElementPlug);
+        MPlugArray existingConnections;
+        inGeomElementPlug.connectedTo(existingConnections, true, false, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        for (unsigned int j = 0; j < existingConnections.length(); ++j) {
+            if (existingConnections[j] == worldMeshPlug) {
+                alreadyConnected = true;
+                break;
+            }
+        }
+    }
+
+    if (!alreadyConnected) {
+        MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(nextIndex, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(nextIndex, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+
+        dgModifier_.connect(worldMeshPlug, inGeomElementPlug);
+        dgModifier_.connect(outMeshPlug, origGeomElementPlug);
+    }
 
     for (unsigned int i = 1; i < geometryList_.length(); ++i) {
         unsigned int index = i - 1;
@@ -195,9 +213,8 @@ MStatus offsetCmd::CreatePinNode() {
 }
 
 MStatus offsetCmd::EditPinNode() {
-    MStatus status;
     MSelectionList sel;
-    status = sel.add(nodeName_);
+    MStatus status = sel.add(nodeName_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     status = sel.getDependNode(0, pinNode_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -239,9 +256,8 @@ MStatus offsetCmd::EditPinNode() {
 }
 
 MStatus offsetCmd::AddPinObjects() {
-    MStatus status;
     MSelectionList sel;
-    status = sel.add(nodeName_);
+    MStatus status = sel.add(nodeName_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     status = sel.getDependNode(0, pinNode_);
     CHECK_MSTATUS_AND_RETURN_IT(status);
