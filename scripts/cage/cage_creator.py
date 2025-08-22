@@ -434,7 +434,7 @@ class CageCreator:
                     f"{deformer}.patchBindPreMatrices[{patch_idx}].bindPreMatrix[{point_idx}]",
                     force=True
                 )
-        cmds.deformCage(rebind=deformer)
+        cmds.deformCage(name=deformer, rebind=True)
 
     def set_proximity_threshold(self, threshold):
         """Sets the proximity threshold for point reuse.

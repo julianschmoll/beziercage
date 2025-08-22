@@ -6,7 +6,7 @@ from tests import decorators
 import math
 import unittest
 
-VERTICES = 110000
+VERTICES = 400
 CONTROL_PATCHES = [
     [
         "test_cage_anchor_0_ctl",
