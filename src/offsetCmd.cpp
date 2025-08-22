@@ -194,8 +194,8 @@ MStatus offsetCmd::ConnectPin(MFnDependencyNode &pinFn) {
             MPlugArray existingConnections;
             offsetParentMatrixPlug.connectedTo(existingConnections, true, false, &status);
             CHECK_MSTATUS_AND_RETURN_IT(status);
-            for (unsigned int i = 0; i < existingConnections.length(); ++i) {
-                dgModifier_.disconnect(existingConnections[i], offsetParentMatrixPlug);
+            for (unsigned int j = 0; j < existingConnections.length(); ++j) {
+                dgModifier_.disconnect(existingConnections[j], offsetParentMatrixPlug);
             }
             dgModifier_.connect(outMatrixElementPlug, offsetParentMatrixPlug);
         } else {
