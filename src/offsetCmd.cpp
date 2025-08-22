@@ -80,9 +80,17 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
     commandMode_ = kCreate;
 
     if (argData.isFlagSet(kEditFlagShort)) {
+        if (!argData.isFlagSet(kNameFlagShort)) {
+            MGlobal::displayError("Edit flag requires a name to be specified.");
+            return MS::kFailure;
+        }
         commandMode_ = kEdit;
     }
     if (argData.isFlagSet(kAddFlagShort)) {
+        if (!argData.isFlagSet(kNameFlagShort)) {
+            MGlobal::displayError("Add flag requires a name to be specified.");
+            return MS::kFailure;
+        }
         commandMode_ = kAdd;
     }
 
@@ -264,6 +272,6 @@ MStatus offsetCmd::AddPinObjects() {
 
     MFnDependencyNode pinFn(pinNode_);
     status = ConnectPin(pinFn);
-
+    setResult("Added pin object to " + pinFn.name());
     return status;
 }
