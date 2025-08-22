@@ -36,9 +36,6 @@ MSyntax offsetCmd::newSyntax() {
     syntax.useSelectionAsDefault(true);
     syntax.setMinObjects(0);
 
-    syntax.enableQuery(false);
-    syntax.enableEdit(true);
-
     return syntax;
 }
 
@@ -53,9 +50,9 @@ MStatus offsetCmd::redoIt() {
         case kCreate:
             return CreatePinNode();
         case kEdit:
-            return EditMatrix();
+            return EditPinNode();
         case kAdd:
-            return AddMatrix();
+            return AddPinObjects();
     }
     return MS::kFailure;
 }
@@ -89,19 +86,12 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
 }
 
 
-MStatus offsetCmd::CreatePinNode() {
+MStatus offsetCmd::ConnectPin(MFnDependencyNode &pinFn) {
     MStatus status;
     if (geometryList_.isEmpty()) {
         displayError("No geometry specified or selected. Please select or specify the geometry to pin to.");
         return MS::kFailure;
     }
-    pinNode_ = dgModifier_.createNode(offsetPin::id, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
-    if (!nodeName_.isEmpty()) {
-        dgModifier_.renameNode(pinNode_, nodeName_);
-    }
-
-    MFnDependencyNode pinFn(pinNode_);
     MPlug inGeomPlug = pinFn.findPlug(offsetPin::aInputGeometry, false, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     MPlug origGeomPlug = pinFn.findPlug(offsetPin::aOriginalGeometry, false, &status);
@@ -161,19 +151,36 @@ MStatus offsetCmd::CreatePinNode() {
 
             MPlug offsetParentMatrixPlug = transformFn.findPlug("offsetParentMatrix", false, &status);
             CHECK_MSTATUS_AND_RETURN_IT(status);
+            MPlugArray existingConnections;
+            offsetParentMatrixPlug.connectedTo(existingConnections, true, false, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            for (unsigned int i = 0; i < existingConnections.length(); ++i) {
+                dgModifier_.disconnect(existingConnections[i], offsetParentMatrixPlug);
+            }
             dgModifier_.connect(outMatrixElementPlug, offsetParentMatrixPlug);
         } else {
             MGlobal::displayError("Node is not a transform. Cannot extract matrix.");
             return MS::kFailure;
         }
     }
-
-    setResult(nodeName_);
-
     return dgModifier_.doIt();
 }
 
-MStatus offsetCmd::EditMatrix() {
+MStatus offsetCmd::CreatePinNode() {
+    MStatus status;
+    pinNode_ = dgModifier_.createNode(offsetPin::id, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    if (!nodeName_.isEmpty()) {
+        dgModifier_.renameNode(pinNode_, nodeName_);
+    }
+
+    MFnDependencyNode pinFn(pinNode_);
+    status = ConnectPin(pinFn);
+    setResult(pinFn.name());
+    return status;
+}
+
+MStatus offsetCmd::EditPinNode() {
     MStatus status;
     MSelectionList sel;
     status = sel.add(nodeName_);
@@ -182,13 +189,42 @@ MStatus offsetCmd::EditMatrix() {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MFnDependencyNode pinFn(pinNode_);
-    MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    return dgModifier_.doIt();
+    MPlug plugsToClear[] = {
+        pinFn.findPlug(offsetPin::aInputGeometry, false, &status),
+        pinFn.findPlug(offsetPin::aOriginalGeometry, false, &status),
+        pinFn.findPlug(offsetPin::aInputMatrix, false, &status),
+        pinFn.findPlug(offsetPin::aOutputMatrix, false, &status),
+        pinFn.findPlug(offsetPin::aGeometryLookup, false, &status),
+        pinFn.findPlug(offsetPin::aBindData, false, &status),
+    };
+
+    for (auto &plug : plugsToClear) {
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        for (unsigned int i = 0; i < plug.numElements(); ++i) {
+            MPlug elem = plug.elementByLogicalIndex(i, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            MPlugArray connectedPlugs;
+            elem.connectedTo(connectedPlugs, true, false, &status);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            for (unsigned int j = 0; j < connectedPlugs.length(); ++j) {
+                dgModifier_.disconnect(connectedPlugs[j], elem);
+            }
+            dgModifier_.removeMultiInstance(elem, true);
+        }
+    }
+    status = dgModifier_.doIt();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = ConnectPin(pinFn);
+    if (status != MS::kSuccess) {
+        MGlobal::displayError("Failed to reconnect " + pinFn.name());
+        return status;
+    }
+    setResult("Reconnected " + pinFn.name());
+    return status;
 }
 
-MStatus offsetCmd::AddMatrix() {
+MStatus offsetCmd::AddPinObjects() {
     MStatus status;
     MSelectionList sel;
     status = sel.add(nodeName_);

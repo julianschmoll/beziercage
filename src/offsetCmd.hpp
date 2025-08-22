@@ -38,9 +38,10 @@ private:
     };
 
     MStatus ParseArguments(const MArgList &args);
+    MStatus ConnectPin(MFnDependencyNode &pinFn);
     MStatus CreatePinNode();
-    MStatus EditMatrix();
-    MStatus AddMatrix();
+    MStatus EditPinNode();
+    MStatus AddPinObjects();
 
     CommandMode commandMode_ = kCreate;
     MString nodeName_;
