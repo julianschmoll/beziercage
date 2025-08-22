@@ -17,10 +17,12 @@ const char *offsetCmd::kName = "offsetPin";
 
 const char *offsetCmd::kNameFlagShort = "-n";
 const char *offsetCmd::kNameFlagLong = "-name";
+
 const char *offsetCmd::kEditFlagShort = "-e";
 const char *offsetCmd::kEditFlagLong = "-edit";
-const char *offsetCmd::kAddFlagShort = "-add";
-const char *offsetCmd::kAddFlagLong = "-add";
+
+const char *offsetCmd::kAddFlagShort = "-ap";
+const char *offsetCmd::kAddFlagLong = "-append";
 
 void *offsetCmd::creator() {
     return new offsetCmd();
@@ -28,13 +30,23 @@ void *offsetCmd::creator() {
 
 MSyntax offsetCmd::newSyntax() {
     MSyntax syntax;
-    syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
-    syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
-    syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
+    MStatus status;
+    status = syntax.addFlag(kNameFlagShort, kNameFlagLong, MSyntax::kString);
+    if (!status) {
+        MGlobal::displayError("Failed to add name flag to syntax.");
+    }
+    status = syntax.addFlag(kAddFlagShort, kAddFlagLong, MSyntax::kBoolean);
+    if (!status) {
+        MGlobal::displayError("Failed to add add flag to syntax.");
+    }
+    status = syntax.addFlag(kEditFlagShort, kEditFlagLong, MSyntax::kBoolean);
+    if (!status) {
+        MGlobal::displayError("Failed to add edit flag to syntax.");
+    }
 
-    syntax.setObjectType(MSyntax::kSelectionList);
+    // We need at least 2 objects, one geometry and one object to pin.
+    syntax.setObjectType(MSyntax::kSelectionList, 2, 255);
     syntax.useSelectionAsDefault(true);
-    syntax.setMinObjects(0);
 
     return syntax;
 }
@@ -109,14 +121,16 @@ MStatus offsetCmd::ConnectPin(MFnDependencyNode &pinFn) {
         return status;
     }
     MFnDependencyNode geomFn(geomPath.node());
+    unsigned int nextIndex = inGeomPlug.numElements();
+
     MPlug outMeshPlug = geomFn.findPlug("outMesh", false, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     MPlug worldMeshPlug = geomFn.findPlug("worldMesh", false, &status).elementByLogicalIndex(0);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(0, &status);
+    MPlug inGeomElementPlug = inGeomPlug.elementByLogicalIndex(nextIndex, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(0, &status);
+    MPlug origGeomElementPlug = origGeomPlug.elementByLogicalIndex(nextIndex, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     dgModifier_.connect(worldMeshPlug, inGeomElementPlug);
@@ -199,7 +213,7 @@ MStatus offsetCmd::EditPinNode() {
         pinFn.findPlug(offsetPin::aBindData, false, &status),
     };
 
-    for (auto &plug : plugsToClear) {
+    for (auto &plug: plugsToClear) {
         CHECK_MSTATUS_AND_RETURN_IT(status);
         for (unsigned int i = 0; i < plug.numElements(); ++i) {
             MPlug elem = plug.elementByLogicalIndex(i, &status);
@@ -233,10 +247,7 @@ MStatus offsetCmd::AddPinObjects() {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MFnDependencyNode pinFn(pinNode_);
-    MPlug inMatrixPlug = pinFn.findPlug(offsetPin::aInputMatrix, false, &status);
-    CHECK_MSTATUS_AND_RETURN_IT(status);
+    status = ConnectPin(pinFn);
 
-    unsigned int nextIndex = inMatrixPlug.numElements();
-
-    return dgModifier_.doIt();
+    return status;
 }
