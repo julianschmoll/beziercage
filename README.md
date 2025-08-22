@@ -1,4 +1,7 @@
-# cage Deformer
+# Bezier Cage Deformer
+
+Bezier Cage Deformer for Autodesk Maya. Inspired by Pixars Curvenet.
+This plugin contains Tools for cage generation as well as the deformer itself and a custom UV-Pin like Node.
 
 ## Usage
 
@@ -8,36 +11,55 @@ You can either build the plugin yourself or download the corresponding build for
 
 ### Load Plugin in Maya
 
-To successfully load cage in Maya, add the `scripts` subdirectory to the `PYTHONPATH` (or `sys.path` in `userSetup.py`) and load the plugin either by adding the plug-ins path to the `MAYA_PLUG_IN_PATH` environment variable or loading it through the plugin manager UI from within Maya. If the scripts folder is not added correcty, the cage menu items won't be initialized.
-
-### Applying the Deformer
-
-The deformer can either be added via the menu item or with the following Python command:
+The Plugin can be added to Maya by setting the `MAYA_MODULLE_PATH` environment variable to the release folder of the bezier cage.
+When starting Maya, the plugin can be loaded via the plugin manager UI or Maya cmds:
 
 ```python
 from maya import cmds
 
-# calls cage creation context
-context = cmds.cageCreationContext(name="cage1")
+# Loading the Cage Creator Tool
+cmds.loadPlugin("cageCreator")
+
+# Loading Cage Deformer
+cmds.loadPlugin("cage")
+```
+
+### Applying the Deformer
+
+To add a cage deformer to a rig or mesh, you can use the `Cage Tool`.
+After loading the `cageCreator` plugin, the cage tool can be accessed via the Maya Deformer menu.
+When the tool is invoked, you can simply click on the mesh to create a cage around it.
+3 clicks form one patch. Make sure to click clock or counter-clockwise for correct patch creation.
+
+If you want to invoke the context via Python or script with the plugins, here are some API examples:
+
+```python
+from maya import cmds
+
+# calls cage creation context with specific cage name
+context = cmds.cageCreationContext(name="cage_name")
 cmds.setToolTo(context)
 
-# Apply the deformer to the current selection with the standard name
+# adds the deformer to the current selection with the standard name
 cmds.deformCage()
 
-# Apply to specific objects with a specific name
-cmds.deformCage("object1", "object2", name="cage1")
+# adds deformer to specific objects with a specific name
+cmds.deformCage(geometry_list, name="cage_name")
 
-# trigger recalculation of the deformer
+# triggers rebind of the deformer. this should be done when patches are added or removed
 cmds.deformCage(name="cage_name", rebind=True)
 
-# To query all available flags, use
-cmds.deformCage(help=True)
+# creates a offsetPin node
+cmds.offsetPin(geometry, *objects_to_pin, name="pin_name")
+
+# adds pin objects to an existing offsetPin node
+cmds.offsetPin(geometry, *objects_to_pin, name="pin_name", append=True)
 ```
 
 ## Building
 
 1. Clone the repository.
-2. Make sure cmake, maya and a c++ compiler is installed on your device.
+2. Make sure cmake, maya and a c++ compiler are installed on your device.
 3. Either run `build <MayaVersion>` (Windows) or `./build.sh <MayaVersion>` (other systems) in the root of the repository.
 
 ## Testing
