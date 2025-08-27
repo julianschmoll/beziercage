@@ -209,7 +209,7 @@ def _update_hud_distance(distance):
         section=5,
         block=1,
         blockSize='small',
-        label=f"Current Threshold Distance: {str(round(distance,2))}",
+        label=f"Current Threshold Distance: {str(round(distance, 2))}",
         labelFontSize='large',
     )
     cmds.refresh(f=1)
@@ -257,7 +257,8 @@ class CageCreationContextCmd(omui.MPxContextCommand):
         return None
 
 
-def calculate_closest_intersection(cam_dag_path, camera_matrix, direction, intersections, position, offset_distance=0.1):
+def calculate_closest_intersection(cam_dag_path, camera_matrix, direction, intersections, position,
+                                   offset_distance=0.1):
     for mesh in get_viewport_meshes(cam_dag_path):
         result = raycast_mesh_intersection(direction, mesh, position, camera_matrix)
 
@@ -462,10 +463,10 @@ def rotation_matrix_from_normal(normal, up_vector=OpenMaya.MVector(0.0, 1.0, 0.0
     bitangent = (normal ^ tangent).normal()
 
     lst = [
-        tangent.x,   tangent.y,   tangent.z,   0.0,
+        tangent.x, tangent.y, tangent.z, 0.0,
         bitangent.x, bitangent.y, bitangent.z, 0.0,
-        -normal.x,   -normal.y,   -normal.z,   0.0,
-        0.0,         0.0,         0.0,         1.0
+        -normal.x, -normal.y, -normal.z, 0.0,
+        0.0, 0.0, 0.0, 1.0
     ]
     matrix = OpenMaya.MMatrix()
     OpenMaya.MScriptUtil.createMatrixFromList(lst, matrix)
@@ -476,7 +477,10 @@ def rotation_matrix_from_normal(normal, up_vector=OpenMaya.MVector(0.0, 1.0, 0.0
 def initializePlugin(plugin):
     plugin_fn = om.MFnPlugin(plugin, "Julian Schmoll", "1.0", "Any")
     if not CageCreator:
-        om.MGlobal.displayError("CageCreator module is not available. Please make sure plugin is loaded correctly.")
+        om.MGlobal.displayError("CageCreator module is not available. "
+                                "Perhaps numpy is missing? "
+                                "Please make sure you can import cage.cage_creator from scripts folder."
+                                )
         return
 
     if om.MGlobal.mayaState() == om.MGlobal.kInteractive:
@@ -489,6 +493,7 @@ def initializePlugin(plugin):
     try:
         plugin_fn.registerContextCommand(CageCreationContextCmd.command_name,
                                          CageCreationContextCmd.creator)
+        om.MGlobal.displayInfo("Initialized Cage Creator")
     except:
         om.MGlobal.displayError("Failed to register context command: %s"
                                 % CageCreationContextCmd.command_name)
@@ -506,6 +511,7 @@ def uninitializePlugin(plugin):
 
     try:
         plugin_fn.deregisterContextCommand(CageCreationContextCmd.command_name)
+        om.MGlobal.displayInfo("Uninitialized Cage Creator")
     except:
         om.MGlobal.displayError("Failed to deregister context command: %s"
                                 % CageCreationContextCmd.command_name)
