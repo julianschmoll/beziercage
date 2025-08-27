@@ -3,11 +3,14 @@
 Bezier Cage Deformer for Autodesk Maya. Inspired by Pixars Curvenet.
 This plugin contains Tools for cage generation as well as the deformer itself and a custom UV-Pin like Node.
 
+Here is a short demo of the cage deformer in Maya:
+![bezier_cage.gif](data/bezier_cage.gif)
+
 ## Usage
 
 [//]: # (This part excluding introduction should stay up to date with data/USAGE.md)
 
-You can either build the plugin yourself or download the corresponding build for your platform from the releases on GitHub.
+You can either [build the plugin yourself](#building) or download the corresponding build for your platform from the releases on GitHub.
 
 ### Load Plugin in Maya
 
@@ -26,7 +29,7 @@ cmds.loadPlugin("cage")
 
 ### Applying the Deformer
 
-To add a cage deformer to a rig or mesh, you can use the `Cage Tool`.
+To add a cage deformer to a rig or mesh, you can use the `Cage Tool`. This requires numpy being available in the Maya Python environment.
 After loading the `cageCreator` plugin, the cage tool can be accessed via the Maya Deformer menu.
 When the tool is invoked, you can simply click on the mesh to create a cage around it.
 3 clicks form one patch. Make sure to click clock or counter-clockwise for correct patch creation.
@@ -59,13 +62,10 @@ cmds.offsetPin(geometry, *objects_to_pin, name="pin_name", append=True)
 ## Building
 
 1. Clone the repository.
-2. Make sure cmake, maya and a c++ compiler are installed on your device.
-3. Either run `build <MayaVersion>` (Windows) or `./build.sh <MayaVersion>` (other systems) in the root of the repository.
+2. Make sure cmake and a c++ compiler are installed on your device.
+3. Make sure Maya Headers (necessary for compiling) can be found by [findMaya.cmake](modules/findMaya.cmake). 
+4. Either run `build <MayaVersion>` (Windows) or `./build.sh <MayaVersion>` (other systems) in the root of the repository.
 
 ## Testing
 
 After building, it is recommended to run automated unit tests by either running `test <MayaVersion>` on Windows or `./test.sh <MayaVersion>` on other systems. The unit tests use `mayapy` shipped with Maya. If Maya is installed in the default location, it will be picked up automatically; otherwise, it can be specified by adding `--mayapy /path/to/mayapy` to the test command.
-
-## License 
-
-Distributed under the MIT License. See [LICENSE](./LICENSE) for more information.
