@@ -210,7 +210,7 @@ MStatus offsetCmd::CreatePinNode() {
     MStatus status;
     pinNode_ = dgModifier_.createNode(offsetPin::id, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    if (!nodeName_.isEmpty()) {
+    if (nodeName_.length() > 0) {
         dgModifier_.renameNode(pinNode_, nodeName_);
     }
 

@@ -465,6 +465,20 @@ def match_geometry_connections(control_node, deformer):
         cmds.connectAttr(
             mesh_plug, f"{control_node}.inputGeometry[{index}]", force=True
         )
+        shape_node = mesh_plug.split('.')[0]
+        mesh_transform = cmds.listRelatives(shape_node, parent=True, fullPath=True)
+        if not mesh_transform:
+            continue
+        mesh_transform = mesh_transform[0]
+
+        orig_shape = get_orig_shape(mesh_transform)
+        if orig_shape:
+            print(f"Connecting {orig_shape}.worldMesh[0] to {control_node}.originalGeometry[{index}]")
+            cmds.connectAttr(
+                f"{orig_shape}.worldMesh[0]",
+                f"{control_node}.originalGeometry[{index}]",
+                force=True
+            )
 
     for index in cmds.getAttr(f"{deformer}.originalGeometry", multiIndices=True) or []:
         mesh_plug = cmds.listConnections(
@@ -479,3 +493,11 @@ def match_geometry_connections(control_node, deformer):
             mesh_plug, f"{control_node}.originalGeometry[{index}]", force=True
         )
     cmds.connectAttr(f"{control_node}.message", f"{deformer}.controlMessage", force=True)
+
+
+def get_orig_shape(mesh):
+    shapes = cmds.listRelatives(mesh, shapes=True, fullPath=True) or []
+    for shape in shapes:
+        if cmds.getAttr(f"{shape}.intermediateObject"):
+            return shape
+    return None

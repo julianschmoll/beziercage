@@ -166,15 +166,17 @@ MStatus offsetPin::initialize() {
 }
 
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
+    MStatus status;
 #if DEBUG_LOG
 MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
 #endif
     if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
     buildGeometryLookup(data);
-    bind(data);
+    status = bind(data);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
     setOutput(data);
     data.setClean(plug);
-    return MS::kSuccess;
+    return status;
 }
 
 MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
@@ -237,16 +239,21 @@ MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
 }
 
 MStatus offsetPin::bind(MDataBlock &data) {
+    MStatus status;
     MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
     MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
 
     for (unsigned int index = 0; index < inputMatrixArray.elementCount(); ++index) {
-        inputMatrixArray.jumpToArrayElement(index);
-        MMatrix matrix = inputMatrixArray.inputValue().asMatrix();
+        status = inputMatrixArray.jumpToArrayElement(index);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        MMatrix matrix = inputMatrixArray.inputValue(&status).asMatrix();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
 
         if (bindDataArray.elementCount() > index) {
-            bindDataArray.jumpToArrayElement(index);
-            MMatrix bindMatrix = bindDataArray.inputValue().child(aBindMatrix).asMatrix();
+            status = bindDataArray.jumpToArrayElement(index);
+            CHECK_MSTATUS_AND_RETURN_IT(status);
+            MMatrix bindMatrix = bindDataArray.inputValue(&status).child(aBindMatrix).asMatrix();
+            CHECK_MSTATUS_AND_RETURN_IT(status);
             if (matrix.isEquivalent(bindMatrix, 1e-6)) {
                 continue;
             }
@@ -254,9 +261,9 @@ MStatus offsetPin::bind(MDataBlock &data) {
             MGlobal::displayInfo(MString("Rebinding point at index: ") + MString(std::to_string(index).c_str()));
 #endif
         }
-        calculateBinding(data, index);
+        status = calculateBinding(data, index);
     }
-    return MS::kSuccess;
+    return status;
 }
 
 MStatus offsetPin::getTriangleVertexIndices(
@@ -283,40 +290,53 @@ MStatus offsetPin::getTriangleVertexIndices(
 MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath) {
     MStatus status;
     MFnDependencyNode fnNode(thisMObject(), &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MPlug origGeomPlug = fnNode.findPlug(aOriginalGeometry, false, &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MPlug elemPlug = origGeomPlug.elementByLogicalIndex(geomIndex, &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MPlugArray connections;
     elemPlug.connectedTo(connections, true, false, &status);
-    if (status != MS::kSuccess || connections.length() == 0) return MS::kFailure;
+    if (status != MS::kSuccess || connections.length() <= 0){
+#if ERROR_LOG
+        MGlobal::displayInfo("No connections found on original geometry plug.");
+#endif
+        return MS::kFailure;
+    }
 
     MObject inputNode = connections[0].node();
     if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
 
     MFnDagNode dagNode(inputNode, &status);
-    if (status != MS::kSuccess) return status;
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     status = dagNode.getPath(dagPath);
     return status;
 }
 
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
+    MStatus status;
 #if DEBUG_LOG
  MGlobal::displayInfo("Calculating binding for index: " + MString(std::to_string(index).c_str()));
 #endif
-    MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix);
-    MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry);
-    MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup);
-    MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData);
-    MArrayDataBuilder bindDataBuilder = bindDataArray.builder();
+    MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataHandle inputGeometryArray = data.inputArrayValue(aInputGeometry, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataHandle geoLookupArray = data.outputArrayValue(aGeometryLookup, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataHandle bindDataArray = data.outputArrayValue(aBindData, &status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MArrayDataBuilder bindDataBuilder = bindDataArray.builder(&status);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
-    inputMatrixArray.jumpToArrayElement(index);
-    MMatrix inputMatrix = inputMatrixArray.inputValue().asMatrix();
+    status = inputMatrixArray.jumpToArrayElement(index);
+    CHECK_MSTATUS_AND_RETURN_IT(status);
+    MMatrix inputMatrix = inputMatrixArray.inputValue(&status).asMatrix();
+    CHECK_MSTATUS_AND_RETURN_IT(status);
     MPoint inputPoint(inputMatrix[3][0], inputMatrix[3][1], inputMatrix[3][2]);
 
     double minDistance = std::numeric_limits<double>::max();
@@ -327,16 +347,18 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     MFloatArray bestBaryCoords;
     MPoint A, B, C, pointOnMeshPoint, closestPoint;
     MMatrix worldMatrix;
-    MStatus status;
     MObject meshObj;
     MPointOnMesh pointOnMesh;
 
     for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
-        inputGeometryArray.jumpToArrayElement(geomIndex);
-        meshObj = inputGeometryArray.inputValue().asMesh();
+        status = inputGeometryArray.jumpToArrayElement(geomIndex);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
+        meshObj = inputGeometryArray.inputValue(&status).asMesh();
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         if (meshObj.isNull()) continue;
 
-        MFnMesh fnMesh(meshObj);
+        MFnMesh fnMesh(meshObj, &status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         MDagPath dagPath;
         // this is nasty as we don't want to access other dag objects from
         // within the node but this way we can get the correct triangle id
@@ -344,7 +366,8 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         status = GetOrigGeomPathFromPlug(geomIndex, dagPath);
         if (status != MS::kSuccess) continue;
 
-        worldMatrix = dagPath.inclusiveMatrix();
+        worldMatrix = dagPath.inclusiveMatrix(&status);
+        CHECK_MSTATUS_AND_RETURN_IT(status);
         MMeshIntersector intersector;
         status = intersector.create(dagPath.node(), worldMatrix);
         if (status != MS::kSuccess) continue;
@@ -373,6 +396,8 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
             GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
         }
     }
+
+    CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MDataHandle bindElem = bindDataBuilder.addElement(index);
     bindElem.child(aBindMatrix).setMMatrix(inputMatrix);
@@ -409,7 +434,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     bindElem.child(aBindOffsetVector).set3Double(offsetVector.x, offsetVector.y, offsetVector.z);
 
     bindDataArray.set(bindDataBuilder);
-    return MS::kSuccess;
+    return status;
 }
 
 MMatrix offsetPin::calculateOutputMatrix(
