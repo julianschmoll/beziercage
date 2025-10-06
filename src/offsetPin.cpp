@@ -369,7 +369,8 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         worldMatrix = dagPath.inclusiveMatrix(&status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MMeshIntersector intersector;
-        status = intersector.create(dagPath.node(), worldMatrix);
+		MObject node = dagPath.node();
+        status = intersector.create(node, worldMatrix);
         if (status != MS::kSuccess) continue;
 
         intersector.getClosestPoint(inputPoint, pointOnMesh);
