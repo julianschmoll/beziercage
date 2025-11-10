@@ -33,6 +33,7 @@ else
   defaultPaths=(
     "/c/Program Files/Autodesk/Maya${version}/bin/mayapy.exe"
     "/usr/autodesk/Maya${version}/bin/mayapy"
+    "/usr/autodesk/maya${version}/bin/mayapy"
     "/Applications/Autodesk/Maya${version}/Maya.app/Contents/bin/mayapy"
   )
   for path in "${defaultPaths[@]}"; do

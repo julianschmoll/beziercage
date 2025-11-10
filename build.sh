@@ -45,12 +45,18 @@ if [ -n "$2" ]; then
   esac
 fi
 
-CMAKE_FLAGS="-DLOG_LEVEL=$LOG_LEVEL_VALUE -DCMAKE_CXX_STANDARD=17"
 echo "Setting LOG_LEVEL to $LOG_LEVEL_VALUE"
 
 toolchain_file="$vcpkg_dir/scripts/buildsystems/vcpkg.cmake"
 
-cmake -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" -DMAYA_VERSION="$1" $CMAKE_FLAGS "$root_folder"
+cmake -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
+      -DMAYA_VERSION="$1" \
+      -DLOG_LEVEL="$LOG_LEVEL_VALUE" \
+      -DCMAKE_CXX_STANDARD=17 \
+      -DCMAKE_CXX_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
+      -DCMAKE_C_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
+      "$root_folder"
+
 cmake --build . --target install --config Release
 cmake --build . --target clean
 
