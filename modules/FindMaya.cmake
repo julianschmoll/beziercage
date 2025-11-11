@@ -1,6 +1,6 @@
 # Set a default Maya version if not specified
 if(NOT DEFINED MAYA_VERSION)
-    set(MAYA_VERSION 2025 CACHE STRING "Maya version")
+    set(MAYA_VERSION 2026 CACHE STRING "Maya version")
 endif()
 
 # OS Specific environment setup

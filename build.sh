@@ -53,9 +53,10 @@ cmake -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
       -DMAYA_VERSION="$1" \
       -DLOG_LEVEL="$LOG_LEVEL_VALUE" \
       -DCMAKE_CXX_STANDARD=17 \
-      -DCMAKE_CXX_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
-      -DCMAKE_C_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
       "$root_folder"
+      # -DCMAKE_CXX_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
+      # -DCMAKE_C_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
+
 
 cmake --build . --target install --config Release
 cmake --build . --target clean
@@ -63,7 +64,7 @@ cmake --build . --target clean
 echo "Cleaning up build files"
 
 for item in "$builddir"/*; do
-  if [ "$(basename "$item")" != "cage" ] && [ "$(basename "$item")" != "USAGE.md" ]; then
+  if [ "$(basename "$item")" != "cage" ] && [ "$(basename "$item")" != "USAGE.md" ] &&  [ "$(basename "$item")" != "cage.mod" ]; then
     rm -rf "$item"
   fi
 done
