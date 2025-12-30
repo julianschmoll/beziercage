@@ -1,10 +1,12 @@
 # Bezier Cage Deformer
 
-Bezier Cage Deformer for Autodesk Maya. Inspired by Pixars Curvenet.
+This is a Bezier Cage Deformer for Autodesk Maya written for my bachelors thesis. It was inspired by Pixars Curvenet.
 This plugin contains Tools for cage generation as well as the deformer itself and a custom UV-Pin like Node.
 
-Here is a short demo of the cage deformer in Maya:
+Here is a short demo of the cage deformer in Maya (might take some time to load):
 ![bezier_cage.gif](data/bezier_cage.gif)
+
+Please use in production at your own risk!
 
 ## Usage
 
