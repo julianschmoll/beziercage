@@ -71,3 +71,6 @@ cmds.offsetPin(geometry, *objects_to_pin, name="pin_name", append=True)
 ## Testing
 
 After building, it is recommended to run automated unit tests by either running `test <MayaVersion>` on Windows or `./test.sh <MayaVersion>` on other systems. The unit tests use `mayapy` shipped with Maya. If Maya is installed in the default location, it will be picked up automatically; otherwise, it can be specified by adding `--mayapy /path/to/mayapy` to the test command.
+
+# Known Issues
+- Maya seems to crash on Linux when opening a scene with more than one cage being applied.
