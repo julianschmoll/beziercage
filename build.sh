@@ -54,8 +54,6 @@ cmake -DCMAKE_TOOLCHAIN_FILE="$toolchain_file" \
       -DLOG_LEVEL="$LOG_LEVEL_VALUE" \
       -DCMAKE_CXX_STANDARD=17 \
       "$root_folder"
-      # -DCMAKE_CXX_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
-      # -DCMAKE_C_FLAGS_RELEASE="-O3 -march=native -flto -DNDEBUG" \
 
 
 cmake --build . --target install --config Release
