@@ -1,10 +1,12 @@
 # Bezier Cage Deformer
 
-Bezier Cage Deformer for Autodesk Maya. Inspired by Pixars Curvenet.
+This is a Bezier Cage Deformer for Autodesk Maya written for my bachelors thesis. It was inspired by Pixars Curvenet.
 This plugin contains Tools for cage generation as well as the deformer itself and a custom UV-Pin like Node.
 
-Here is a short demo of the cage deformer in Maya:
+Here is a short demo of the cage deformer in Maya (might take some time to load):
 ![bezier_cage.gif](data/bezier_cage.gif)
+
+Please use in production at your own risk!
 
 ## Usage
 
@@ -69,3 +71,6 @@ cmds.offsetPin(geometry, *objects_to_pin, name="pin_name", append=True)
 ## Testing
 
 After building, it is recommended to run automated unit tests by either running `test <MayaVersion>` on Windows or `./test.sh <MayaVersion>` on other systems. The unit tests use `mayapy` shipped with Maya. If Maya is installed in the default location, it will be picked up automatically; otherwise, it can be specified by adding `--mayapy /path/to/mayapy` to the test command.
+
+# Known Issues
+- Maya seems to crash on Linux when opening a scene with more than one cage being applied.
