@@ -59,13 +59,13 @@ MStatus DeleteIntermediateObjects(MDagPath &path) {
 
 void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c, MFloatArray &coords) {
     // Compute the normal of the triangle
-    MVector N = (b - a) ^ (c - a);
-    MVector unitN = N.normal();
+    MVector normal = (b - a) ^ (c - a);
+    MVector unitNormal = normal.normal();
 
     coords.setLength(3);
 
     // Compute twice area of triangle ABC
-    double areaABC = unitN * N;
+    double areaABC = unitNormal * normal;
 
     // If the triangle is degenerate, just use one of the points.
     if (fabs(areaABC) < 1e-8) {
@@ -76,11 +76,11 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
     }
 
     // Compute a
-    double areaPBC = unitN * ((b - p) ^ (c - p));
+    double areaPBC = unitNormal * ((b - p) ^ (c - p));
     coords[0] = (float)(areaPBC / areaABC);
 
     // Compute b
-    double areaPCA = unitN * ((c - p) ^ (a - p));
+    double areaPCA = unitNormal * ((c - p) ^ (a - p));
     coords[1] = (float)(areaPCA / areaABC);
 
     // Compute c

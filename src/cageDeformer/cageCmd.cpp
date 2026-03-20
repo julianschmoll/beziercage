@@ -13,7 +13,7 @@ const char *cageCmd::kHelpFlagLong = "-help";
 const char *cageCmd::kRebindFlagShort = "-r";
 const char *cageCmd::kRebindFlagLong = "-rebind";
 
-void DisplayHelp() {
+void displayHelp() {
     MString help;
     help += "Flags of cage Command:\n";
     help += "-name (-n):          String     Name of the cage node to create.\n";
@@ -147,7 +147,7 @@ MStatus cageCmd::redoIt() {
 #endif
 
     if (executedCommand == kCommandHelp) {
-        DisplayHelp();
+        displayHelp();
         return MS::kSuccess;
     }
     if (executedCommand == kCommandCreate) {

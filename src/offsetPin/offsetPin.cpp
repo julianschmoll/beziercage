@@ -345,7 +345,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     MIntArray bestVertexIndices;
     MMatrix bestTriangleMatrix;
     MFloatArray bestBaryCoords;
-    MPoint A, B, C, pointOnMeshPoint, closestPoint;
+    MPoint pointA, pointB, pointC, pointOnMeshPoint, closestPoint;
     MMatrix worldMatrix;
     MObject meshObj;
     MPointOnMesh pointOnMesh;
@@ -391,13 +391,13 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
 
             getTriangleVertexIndices(geoLookupArray, geomIndex, faceId, triId, bestVertexIndices);
 
-            fnMesh.getPoint(bestVertexIndices[0], A, MSpace::kWorld);
-            fnMesh.getPoint(bestVertexIndices[1], B, MSpace::kWorld);
-            fnMesh.getPoint(bestVertexIndices[2], C, MSpace::kWorld);
+            fnMesh.getPoint(bestVertexIndices[0], pointA, MSpace::kWorld);
+            fnMesh.getPoint(bestVertexIndices[1], pointB, MSpace::kWorld);
+            fnMesh.getPoint(bestVertexIndices[2], pointC, MSpace::kWorld);
 
-            RotationMatrixFromTri(A, B, C, bestTriangleMatrix);
+            RotationMatrixFromTri(pointA, pointB, pointC, bestTriangleMatrix);
 
-            GetBarycentricCoordinates(bestClosestPoint, A, B, C, bestBaryCoords);
+            GetBarycentricCoordinates(bestClosestPoint, pointA, pointB, pointC, bestBaryCoords);
         }
     }
 
@@ -414,7 +414,7 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     inputGeometryArray.jumpToArrayElement(bestGeomIndex);
     meshObj = inputGeometryArray.inputValue().asMesh();
     MFnMesh fnMesh(meshObj);
-    MMatrix deformMatrix = calculateOutputMatrix(bestBaryCoords, A, B, C, bestTriangleMatrix);
+    MMatrix deformMatrix = calculateOutputMatrix(bestBaryCoords, pointA, pointB, pointC, bestTriangleMatrix);
     MVector deformTranslation(deformMatrix[3][0], deformMatrix[3][1], deformMatrix[3][2]);
     MVector offsetVector = -deformTranslation;
     bindElem.child(aBindOffsetVector).set3Double(offsetVector.x, offsetVector.y, offsetVector.z);
@@ -423,11 +423,11 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     return status;
 }
 
-MMatrix offsetPin::calculateOutputMatrix(const MFloatArray &baryCoords, const MPoint &A, const MPoint &B, const MPoint &C,
+MMatrix offsetPin::calculateOutputMatrix(const MFloatArray &baryCoords, const MPoint &pointA, const MPoint &pointB, const MPoint &pointC,
                                          const MMatrix &bindTriangleMatrix, const MVector *offsetVector) {
-    MVector interpolatedPosition = MVector(A) * baryCoords[0] + MVector(B) * baryCoords[1] + MVector(C) * baryCoords[2];
+    MVector interpolatedPosition = MVector(pointA) * baryCoords[0] + MVector(pointB) * baryCoords[1] + MVector(pointC) * baryCoords[2];
     MMatrix outputMatrix;
-    RotationMatrixFromTri(A, B, C, outputMatrix);
+    RotationMatrixFromTri(pointA, pointB, pointC, outputMatrix);
     outputMatrix = bindTriangleMatrix.inverse() * outputMatrix;
 
     if (offsetVector) {
@@ -551,12 +551,12 @@ MThreadRetVal offsetPin::ThreadEvaluate(void *pParam) {
         if (!fnMesh)
             continue;
 
-        MPoint A, B, C;
-        fnMesh->getPoint(vertexIndices[index][0], A, MSpace::kWorld);
-        fnMesh->getPoint(vertexIndices[index][1], B, MSpace::kWorld);
-        fnMesh->getPoint(vertexIndices[index][2], C, MSpace::kWorld);
+        MPoint pointA, pointB, pointC;
+        fnMesh->getPoint(vertexIndices[index][0], pointA, MSpace::kWorld);
+        fnMesh->getPoint(vertexIndices[index][1], pointB, MSpace::kWorld);
+        fnMesh->getPoint(vertexIndices[index][2], pointC, MSpace::kWorld);
 
-        outputMatrices[index] = calculateOutputMatrix(baryCoords[index], A, B, C, triMatrices[index], &offsetVectors[index]);
+        outputMatrices[index] = calculateOutputMatrix(baryCoords[index], pointA, pointB, pointC, triMatrices[index], &offsetVectors[index]);
     }
-    return 0;
+    return nullptr;
 }

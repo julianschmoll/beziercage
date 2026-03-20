@@ -14,31 +14,31 @@ BezierPatchDistance::BezierPatchDistance(const std::vector<MPoint> &controlPoint
     : patchControlPoints(controlPoints), targetPoint(targetPoint) {}
 
 MPoint BezierPatchDistance::evaluate(const double u, const double v) const {
-    const auto Bu = bernstein(u);
-    const auto Bv = bernstein(v);
+    const auto bernsteinU = bernstein(u);
+    const auto bernsteinV = bernstein(v);
 
     MPoint point(0, 0, 0);
     for (int i = 0; i <= uDegree; ++i)
         for (int j = 0; j <= vDegree; ++j)
-            point += patchControlPoints[i * (vDegree + 1) + j] * Bu[i] * Bv[j];
+            point += patchControlPoints[i * (vDegree + 1) + j] * bernsteinU[i] * bernsteinV[j];
 
     return point;
 }
 
-void BezierPatchDistance::derivatives(const double u, const double v, MVector &dPdu, MVector &dPdv) const {
-    const auto Bu = bernstein(u);
-    const auto Bv = bernstein(v);
-    const auto dBu = bernsteinDerivative(u);
-    const auto dBv = bernsteinDerivative(v);
+void BezierPatchDistance::derivatives(const double u, const double v, MVector &partialU, MVector &partialV) const {
+    const auto bernsteinU = bernstein(u);
+    const auto bernsteinV = bernstein(v);
+    const auto derivativeBernsteinU = bernsteinDerivative(u);
+    const auto derivativeBernsteinV = bernsteinDerivative(v);
 
-    dPdu = MVector::zero;
-    dPdv = MVector::zero;
+    partialU = MVector::zero;
+    partialV = MVector::zero;
 
     for (int i = 0; i <= uDegree; ++i) {
         for (int j = 0; j <= vDegree; ++j) {
             const MVector cp(patchControlPoints[i * (vDegree + 1) + j]);
-            dPdu += cp * dBu[i] * Bv[j];
-            dPdv += cp * Bu[i] * dBv[j];
+            partialU += cp * derivativeBernsteinU[i] * bernsteinV[j];
+            partialV += cp * bernsteinU[i] * derivativeBernsteinV[j];
         }
     }
 }
@@ -47,14 +47,14 @@ double BezierPatchDistance::operator()(const Eigen::VectorXd &uv, Eigen::VectorX
     const double u = uv[0];
     const double v = uv[1];
 
-    const MVector diff = evaluate(u, v) - targetPoint;
+    const MVector distance = evaluate(u, v) - targetPoint;
 
-    MVector dPdu, dPdv;
-    derivatives(u, v, dPdu, dPdv);
+    MVector partialU, partialV;
+    derivatives(u, v, partialU, partialV);
 
     gradient.resize(2);
-    gradient[0] = 2.0 * (diff * dPdu);
-    gradient[1] = 2.0 * (diff * dPdv);
+    gradient[0] = 2.0 * (distance * partialU);
+    gradient[1] = 2.0 * (distance * partialV);
 
-    return diff * diff; // squared distance
+    return distance * distance;
 }
