@@ -2,9 +2,6 @@
 #include <cmath>
 #include <maya/MPoint.h>
 
-#include "offsetPin.hpp"
-#include "cageDeformer.hpp"
-
 bool IsShapeNode(MDagPath &path) {
     return path.node().hasFn(MFn::kMesh) ||
            path.node().hasFn(MFn::kNurbsCurve) ||

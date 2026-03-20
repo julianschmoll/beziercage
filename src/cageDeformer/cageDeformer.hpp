@@ -15,6 +15,8 @@
 #include <maya/MPointArray.h>
 
 
+enum class DeformState { PreDeform, PostDeform };
+
 // This struct holds the data for each deform task.
 struct deformTaskData {
     unsigned int numVerts;
@@ -91,7 +93,7 @@ private:
      * @param preDeform If true, retrieves pre-deformation control points.
      * @return A vector of vectors containing control points for each Bézier patch.
      */
-    static std::vector<std::vector<MPoint> > getControlPoints(MDataBlock &dataBlock, bool preDeform = false);
+    static std::vector<std::vector<MPoint>> getControlPoints(MDataBlock &dataBlock, DeformState state);
 
     /**
      * Creates thread tasks for parallel region execution.

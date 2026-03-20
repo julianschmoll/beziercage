@@ -1,5 +1,6 @@
 #include "cageDeformer.hpp"
 #include "common.hpp"
+#include "bind.hpp"
 
 #include <maya/MFnCompoundAttribute.h>
 #include <maya/MFnMatrixAttribute.h>
@@ -187,8 +188,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // gather all data for threading
-    const auto controlPoints = getControlPoints(dataBlock);
-    const auto preControlPoints = getControlPoints(dataBlock, true);
+    const auto preControlPoints  = getControlPoints(dataBlock, DeformState::PreDeform);
+	const auto controlPoints     = getControlPoints(dataBlock, DeformState::PostDeform);
     MPointArray points;
     geometryIterator.allPositions(points);
     std::vector<float> bindDist, weights, u, v;
@@ -292,16 +293,7 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     const auto &envelope = data->envelope;
 
     for (unsigned int i = threadData->start; i < threadData->end; ++i) {
-        if (i >= bindDist.size() || i >= weights.size() || i >= patchIdx.size() || i >= u.size() || i >= v.size() || i
-            >= points.length()) {
-#if DEBUG_LOG
-            MGlobal::displayError("Index out of bounds in ThreadEvaluate: " + MString(std::to_string(i).c_str()));
-#endif
-            continue;
-        }
-
         const auto weight = weights[i];
-
         // Skip calculation if we don't need to deform to be faster
         if (weight != 0.0f && bindDist[i] < data->distanceTreshold) {
 #if DEBUG_LOG
@@ -341,7 +333,7 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
         return status;
     }
 
-    auto controlPoints = getControlPoints(dataBlock, true);
+    auto controlPoints = getControlPoints(dataBlock, DeformState::PreDeform);
     if (controlPoints.empty()) {
 #if ERROR_LOG
         MGlobal::displayError("No valid NURBS surface connected to the deformer.");
@@ -455,12 +447,12 @@ MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
     return status;
 }
 
-std::vector<std::vector<MPoint> > bezierCage::getControlPoints(MDataBlock &dataBlock, const bool preDeform) {
+std::vector<std::vector<MPoint>> bezierCage::getControlPoints(MDataBlock &dataBlock, DeformState state) {
     MStatus status;
-    std::vector<std::vector<MPoint> > patches;
+    std::vector<std::vector<MPoint>> patches;
 
-    MObject matrixArrayAttr = preDeform ? aPatchBindPreMatrices : aPatchMatrices;
-    MObject matrixAttr = preDeform ? aBindPreMatrix : aMatrix;
+    const MObject matrixArrayAttr = (state == DeformState::PreDeform) ? aPatchBindPreMatrices : aPatchMatrices;
+    const MObject matrixAttr      = (state == DeformState::PreDeform) ? aBindPreMatrix        : aMatrix;
 
     MArrayDataHandle patchArrayHandle = dataBlock.inputArrayValue(matrixArrayAttr, &status);
     CHECK_MSTATUS_AND_RETURN(status, patches);
@@ -582,111 +574,19 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-class BezierPatchDistance {
-    const std::vector<MPoint> &patchControlPoints;
-    const MPoint &targetPoint;
-    const int uDegree = 3;
-    const int vDegree = 3;
-
-    static std::array<double, 4> bernstein(const double parameter) {
-        const double parameterSquared = parameter * parameter;
-        const double parameterCubed = parameterSquared * parameter;
-        const double oneMinusParameter = 1.0 - parameter;
-        const double oneMinusParameterSquared = oneMinusParameter * oneMinusParameter;
-        const double oneMinusParameterCubed = oneMinusParameterSquared * oneMinusParameter;
-        return {
-            oneMinusParameterCubed,
-            3.0 * parameter * oneMinusParameterSquared,
-            3.0 * parameterSquared * oneMinusParameter,
-            parameterCubed
-        };
-    }
-
-    static std::array<double, 4> bernsteinDerivative(const double parameter) {
-        const double parameterSquared = parameter * parameter;
-        const double oneMinusParameter = 1.0 - parameter;
-        const double oneMinusParameterSquared = oneMinusParameter * oneMinusParameter;
-        return {
-            -3.0 * oneMinusParameterSquared,
-            3.0 * oneMinusParameterSquared - 6.0 * parameter * oneMinusParameter,
-            6.0 * parameter * oneMinusParameter - 3.0 * parameterSquared,
-            3.0 * parameterSquared
-        };
-    }
-
-public:
-    BezierPatchDistance(const std::vector<MPoint> &cps, const MPoint &qp)
-        : patchControlPoints(cps), targetPoint(qp) {
-    }
-
-    // We should use the function we already have but for simplicity reasons and different data types,
-    // we implement the evaluation of the bezier patch here.
-    [[nodiscard]] MPoint evaluate(const double u, const double v) const {
-        auto bernsteinU = bernstein(u);
-        auto bernsteinV = bernstein(v);
-        MPoint point(0, 0, 0);
-        for (int i = 0; i <= uDegree; ++i) {
-            for (int j = 0; j <= vDegree; ++j) {
-                point += patchControlPoints[i * (vDegree + 1) + j] * bernsteinU[i] * bernsteinV[j];
-            }
-        }
-        return point;
-    }
-
-    void derivatives(const double u, const double v, MVector &dPdu, MVector &dPdv) const {
-        auto bernsteinU = bernstein(u);
-        auto bernsteinV = bernstein(v);
-        auto bernsteinDerivU = bernsteinDerivative(u);
-        auto bernsteinDerivV = bernsteinDerivative(v);
-
-        dPdu = MVector::zero;
-        dPdv = MVector::zero;
-
-        for (int i = 0; i <= uDegree; ++i) {
-            for (int j = 0; j <= vDegree; ++j) {
-                const MPoint &cp = patchControlPoints[i * (vDegree + 1) + j];
-                dPdu += MVector(cp) * bernsteinDerivU[i] * bernsteinV[j];
-                dPdv += MVector(cp) * bernsteinU[i] * bernsteinDerivV[j];
-            }
-        }
-    }
-
-    double operator()(const Eigen::VectorXd &uvParams, Eigen::VectorXd &gradient) {
-        const double u = uvParams[0];
-        const double v = uvParams[1];
-
-        MPoint surfacePoint = evaluate(u, v);
-        MVector diff = surfacePoint - targetPoint;
-
-        MVector dPdu, dPdv;
-        derivatives(u, v, dPdu, dPdv);
-
-        gradient.resize(2);
-        gradient[0] = 2.0 * diff * dPdu;
-        gradient[1] = 2.0 * diff * dPdv;
-
-        return diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-    }
-};
-
 std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
-                                               const MPoint &queryPoint) {
+                                               const MPoint              &queryPoint) {
     LBFGSpp::LBFGSBParam<double> param;
-
-    // We could make this configurable in the future
-    param.epsilon = 1e-2;
+    param.epsilon        = 1e-2;
     param.max_iterations = 200;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
     BezierPatchDistance distance(controlPoints, queryPoint);
 
-    // this sets lower bounds to 0.0 and upper bounds to 1.0 for both u and v parameters
-    constexpr Eigen::Index dimension = 2;
-    Eigen::VectorXd lowerBounds = Eigen::VectorXd::Constant(dimension, 0.0);
-    Eigen::VectorXd upperBounds = Eigen::VectorXd::Constant(dimension, 1.0);
-
-    // initial guess (0.5, 0.5) which is the center of the patch
-    Eigen::VectorXd uv = Eigen::VectorXd::Constant(dimension, 0.5);
+    constexpr Eigen::Index dim = 2;
+    const Eigen::VectorXd lowerBounds = Eigen::VectorXd::Constant(dim, 0.0);
+    const Eigen::VectorXd upperBounds = Eigen::VectorXd::Constant(dim, 1.0);
+    Eigen::VectorXd uv                = Eigen::VectorXd::Constant(dim, 0.5); // centre of patch
 
     double finalCost;
     solver.minimize(distance, uv, finalCost, lowerBounds, upperBounds);

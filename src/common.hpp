@@ -4,8 +4,10 @@
 
 #pragma once
 
-#include "cageCmd.hpp"
-#include "cageDeformer.hpp"
+#include "cageDeformer/cageCmd.hpp"
+#include "cageDeformer/cageDeformer.hpp"
+#include "cageDeformer/cageCmd.hpp"
+#include "offsetPin/offsetPin.hpp"
 
 #include <maya/MDagPath.h>
 #include <maya/MDoubleArray.h>

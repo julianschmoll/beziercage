@@ -1,7 +1,7 @@
-#include "cageCmd.hpp"
-#include "cageDeformer.hpp"
-#include "offsetPin.hpp"
-#include "offsetCmd.hpp"
+#include "cageDeformer/cageCmd.hpp"
+#include "cageDeformer/cageDeformer.hpp"
+#include "offsetPin/offsetPin.hpp"
+#include "offsetPin/offsetCmd.hpp"
 #include "common.hpp"
 
 #include <maya/MFnPlugin.h>

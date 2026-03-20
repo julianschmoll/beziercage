@@ -1,14 +1,16 @@
 set(SOURCE_FILES
         "common.hpp"
         "common.cpp"
-        "cageCmd.hpp"
-        "cageCmd.cpp"
-        "cageDeformer.hpp"
-        "cageDeformer.cpp"
-        "offsetCmd.hpp"
-        "offsetCmd.cpp"
-        "offsetPin.hpp"
-        "offsetPin.cpp"
+        "cageDeformer/cageCmd.hpp"
+        "cageDeformer/cageCmd.cpp"
+        "cageDeformer/bind.hpp"
+        "cageDeformer/bind.cpp"
+        "cageDeformer/cageDeformer.hpp"
+        "cageDeformer/cageDeformer.cpp"
+        "offsetPin/offsetCmd.hpp"
+        "offsetPin/offsetCmd.cpp"
+        "offsetPin/offsetPin.hpp"
+        "offsetPin/offsetPin.cpp"
         "pluginMain.cpp"
 )
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MAYA_CXX_FLAGS}")
@@ -20,6 +22,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
         ${MAYA_INCLUDE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 # We skip warnings with system public. the warnings are mostly
