@@ -1,11 +1,11 @@
 #pragma once
 
-#include <maya/MPxCommand.h>
-#include <maya/MString.h>
-#include <maya/MSelectionList.h>
 #include <maya/MDGModifier.h>
 #include <maya/MDagPathArray.h>
 #include <maya/MMatrix.h>
+#include <maya/MPxCommand.h>
+#include <maya/MSelectionList.h>
+#include <maya/MString.h>
 #include <vector>
 
 class offsetCmd : public MPxCommand {
@@ -20,7 +20,9 @@ public:
 
     MStatus redoIt() override;
 
-    bool isUndoable() const override { return true; }
+    bool isUndoable() const override {
+        return true;
+    }
 
     static void *creator();
 
@@ -35,11 +37,7 @@ public:
     static const char *kAddFlagLong;
 
 private:
-    enum CommandMode {
-        kCreate,
-        kEdit,
-        kAdd
-    };
+    enum CommandMode { kCreate, kEdit, kAdd };
 
     /**
      * Parses the command arguments.

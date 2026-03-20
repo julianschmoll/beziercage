@@ -13,7 +13,6 @@ const char *cageCmd::kHelpFlagLong = "-help";
 const char *cageCmd::kRebindFlagShort = "-r";
 const char *cageCmd::kRebindFlagLong = "-rebind";
 
-
 void DisplayHelp() {
     MString help;
     help += "Flags of cage Command:\n";
@@ -22,9 +21,7 @@ void DisplayHelp() {
     MGlobal::displayInfo(help);
 }
 
-cageCmd::cageCmd() : name_("cage#"), executedCommand(kCommandCreate) {
-}
-
+cageCmd::cageCmd() : name_("cage#"), executedCommand(kCommandCreate) {}
 
 MSyntax cageCmd::newSyntax() {
     MSyntax syntax;
@@ -40,16 +37,13 @@ MSyntax cageCmd::newSyntax() {
     return syntax;
 }
 
-
 void *cageCmd::creator() {
     return new cageCmd;
 }
 
-
 bool cageCmd::isUndoable() const {
     return executedCommand == kCommandCreate;
 }
-
 
 MStatus cageCmd::doIt(const MArgList &args) {
     MStatus status;
@@ -86,7 +80,6 @@ MStatus cageCmd::doIt(const MArgList &args) {
     return redoIt();
 }
 
-
 MStatus cageCmd::GetGeometryPaths() {
     MStatus status;
 
@@ -104,7 +97,6 @@ MStatus cageCmd::GetGeometryPaths() {
     }
     return MS::kSuccess;
 }
-
 
 MStatus cageCmd::GatherCommandArguments(const MArgList &args) {
     MStatus status;
@@ -154,7 +146,6 @@ MStatus cageCmd::redoIt() {
     MGlobal::displayInfo("Executing cage command");
 #endif
 
-
     if (executedCommand == kCommandHelp) {
         DisplayHelp();
         return MS::kSuccess;
@@ -193,20 +184,13 @@ MStatus cageCmd::redoIt() {
     return MS::kSuccess;
 }
 
-
 MStatus cageCmd::GetLatestDeformerNode() {
     MStatus status;
     MObject oMesh = deformedDagPaths[0].node();
 
     // find it in the deformation chain.
-    MItDependencyGraph itDG(
-        oMesh,
-        MFn::kGeometryFilt,
-        MItDependencyGraph::kUpstream,
-        MItDependencyGraph::kDepthFirst,
-        MItDependencyGraph::kNodeLevel,
-        &status
-    );
+    MItDependencyGraph itDG(oMesh, MFn::kGeometryFilt, MItDependencyGraph::kUpstream, MItDependencyGraph::kDepthFirst, MItDependencyGraph::kNodeLevel,
+                            &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     MObject oDeformerNode;
     for (; !itDG.isDone(); itDG.next()) {
@@ -220,7 +204,6 @@ MStatus cageCmd::GetLatestDeformerNode() {
     }
     return MS::kFailure;
 }
-
 
 MStatus cageCmd::undoIt() {
     MStatus status;

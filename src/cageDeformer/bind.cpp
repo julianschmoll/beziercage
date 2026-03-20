@@ -2,30 +2,16 @@
 
 std::array<double, 4> BezierPatchDistance::bernstein(const double t) {
     const double s = 1.0 - t;
-    return {
-        s * s * s,
-        3.0 * t * s * s,
-        3.0 * t * t * s,
-        t * t * t
-    };
+    return {s * s * s, 3.0 * t * s * s, 3.0 * t * t * s, t * t * t};
 }
 
 std::array<double, 4> BezierPatchDistance::bernsteinDerivative(const double t) {
     const double s = 1.0 - t;
-    return {
-        -3.0 * s * s,
-         3.0 * s * (s - 2.0 * t),
-         3.0 * t * (2.0 * s - t),
-         3.0 * t * t
-    };
+    return {-3.0 * s * s, 3.0 * s * (s - 2.0 * t), 3.0 * t * (2.0 * s - t), 3.0 * t * t};
 }
 
-BezierPatchDistance::BezierPatchDistance(const std::vector<MPoint> &controlPoints,
-                                         const MPoint              &targetPoint)
-    : patchControlPoints(controlPoints)
-    , targetPoint(targetPoint)
-{}
-
+BezierPatchDistance::BezierPatchDistance(const std::vector<MPoint> &controlPoints, const MPoint &targetPoint)
+    : patchControlPoints(controlPoints), targetPoint(targetPoint) {}
 
 MPoint BezierPatchDistance::evaluate(const double u, const double v) const {
     const auto Bu = bernstein(u);
@@ -39,10 +25,9 @@ MPoint BezierPatchDistance::evaluate(const double u, const double v) const {
     return point;
 }
 
-void BezierPatchDistance::derivatives(const double u, const double v,
-                                      MVector &dPdu, MVector &dPdv) const {
-    const auto Bu  = bernstein(u);
-    const auto Bv  = bernstein(v);
+void BezierPatchDistance::derivatives(const double u, const double v, MVector &dPdu, MVector &dPdv) const {
+    const auto Bu = bernstein(u);
+    const auto Bv = bernstein(v);
     const auto dBu = bernsteinDerivative(u);
     const auto dBv = bernsteinDerivative(v);
 
@@ -53,14 +38,12 @@ void BezierPatchDistance::derivatives(const double u, const double v,
         for (int j = 0; j <= vDegree; ++j) {
             const MVector cp(patchControlPoints[i * (vDegree + 1) + j]);
             dPdu += cp * dBu[i] * Bv[j];
-            dPdv += cp * Bu[i]  * dBv[j];
+            dPdv += cp * Bu[i] * dBv[j];
         }
     }
 }
 
-
-double BezierPatchDistance::operator()(const Eigen::VectorXd &uv,
-                                       Eigen::VectorXd       &gradient) {
+double BezierPatchDistance::operator()(const Eigen::VectorXd &uv, Eigen::VectorXd &gradient) {
     const double u = uv[0];
     const double v = uv[1];
 

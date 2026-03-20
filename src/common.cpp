@@ -3,9 +3,7 @@
 #include <maya/MPoint.h>
 
 bool IsShapeNode(MDagPath &path) {
-    return path.node().hasFn(MFn::kMesh) ||
-           path.node().hasFn(MFn::kNurbsCurve) ||
-           path.node().hasFn(MFn::kNurbsSurface);
+    return path.node().hasFn(MFn::kMesh) || path.node().hasFn(MFn::kNurbsCurve) || path.node().hasFn(MFn::kNurbsSurface);
 }
 
 MStatus GetShapeNode(MDagPath &path, bool intermediate) {
@@ -59,8 +57,7 @@ MStatus DeleteIntermediateObjects(MDagPath &path) {
     return MS::kSuccess;
 }
 
-void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c,
-                               MFloatArray &coords) {
+void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b, const MPoint &c, MFloatArray &coords) {
     // Compute the normal of the triangle
     MVector N = (b - a) ^ (c - a);
     MVector unitN = N.normal();
@@ -80,11 +77,11 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
 
     // Compute a
     double areaPBC = unitN * ((b - p) ^ (c - p));
-    coords[0] = (float) (areaPBC / areaABC);
+    coords[0] = (float)(areaPBC / areaABC);
 
     // Compute b
     double areaPCA = unitN * ((c - p) ^ (a - p));
-    coords[1] = (float) (areaPCA / areaABC);
+    coords[1] = (float)(areaPCA / areaABC);
 
     // Compute c
     coords[2] = 1.0f - coords[0] - coords[1];
@@ -147,10 +144,7 @@ MPoint deCasteljau(const std::vector<MPoint> &points, float t) {
 MPoint evaluateBezierPatch(const std::vector<MPoint> &controlPoints, float u, float v) {
     if (controlPoints.size() != 16) {
 #if ERROR_LOG
-        MGlobal::displayError(
-            "Bezier patch must consist of 16 control points, found " +
-            MString(std::to_string(controlPoints.size()).c_str())
-        );
+        MGlobal::displayError("Bezier patch must consist of 16 control points, found " + MString(std::to_string(controlPoints.size()).c_str()));
 #endif
         return MPoint();
     }
@@ -198,7 +192,9 @@ void connectionMonitorCallback(MPlug &srcPlug, MPlug &destPlug, bool made, void 
     MObject controlNode = connectedPlugs[0].node(&status);
     CHECK_MSTATUS(status);
     MFnDependencyNode controlNodeFn(controlNode, &status);
-    if (status != MS::kSuccess || controlNodeFn.typeName() != offsetPin::typeName) { return; }
+    if (status != MS::kSuccess || controlNodeFn.typeName() != offsetPin::typeName) {
+        return;
+    }
 
     MPlug controlInputGeomArrayPlug = controlNodeFn.findPlug(offsetPin::aInputGeometry, false, &status);
     CHECK_MSTATUS(status);

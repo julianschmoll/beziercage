@@ -1,16 +1,13 @@
 #include "offsetCmd.hpp"
-#include "offsetPin.hpp"
 #include "common.hpp"
+#include "offsetPin.hpp"
 
 #include <maya/MArgDatabase.h>
-#include <maya/MGlobal.h>
 #include <maya/MFnDependencyNode.h>
+#include <maya/MFnMatrixData.h>
+#include <maya/MGlobal.h>
 #include <maya/MPlug.h>
 #include <maya/MPlugArray.h>
-#include <maya/MFnMatrixData.h>
-#include <maya/MSyntax.h>
-#include <maya/MSyntax.h>
-#include <maya/MSyntax.h>
 #include <maya/MSyntax.h>
 
 const char *offsetCmd::kName = "offsetPin";
@@ -58,12 +55,12 @@ MStatus offsetCmd::doIt(const MArgList &args) {
 
 MStatus offsetCmd::redoIt() {
     switch (commandMode_) {
-        case kCreate:
-            return CreatePinNode();
-        case kEdit:
-            return EditPinNode();
-        case kAdd:
-            return AddPinObjects();
+    case kCreate:
+        return CreatePinNode();
+    case kEdit:
+        return EditPinNode();
+    case kAdd:
+        return AddPinObjects();
     }
     return MS::kFailure;
 }
@@ -103,7 +100,6 @@ MStatus offsetCmd::ParseArguments(const MArgList &args) {
 
     return MS::kSuccess;
 }
-
 
 MStatus offsetCmd::ConnectPin(MFnDependencyNode &pinFn) {
     MStatus status;
@@ -230,15 +226,12 @@ MStatus offsetCmd::EditPinNode() {
     MFnDependencyNode pinFn(pinNode_);
 
     MPlug plugsToClear[] = {
-        pinFn.findPlug(offsetPin::aInputGeometry, false, &status),
-        pinFn.findPlug(offsetPin::aOriginalGeometry, false, &status),
-        pinFn.findPlug(offsetPin::aInputMatrix, false, &status),
-        pinFn.findPlug(offsetPin::aOutputMatrix, false, &status),
-        pinFn.findPlug(offsetPin::aGeometryLookup, false, &status),
-        pinFn.findPlug(offsetPin::aBindData, false, &status),
+        pinFn.findPlug(offsetPin::aInputGeometry, false, &status),  pinFn.findPlug(offsetPin::aOriginalGeometry, false, &status),
+        pinFn.findPlug(offsetPin::aInputMatrix, false, &status),    pinFn.findPlug(offsetPin::aOutputMatrix, false, &status),
+        pinFn.findPlug(offsetPin::aGeometryLookup, false, &status), pinFn.findPlug(offsetPin::aBindData, false, &status),
     };
 
-    for (auto &plug: plugsToClear) {
+    for (auto &plug : plugsToClear) {
         CHECK_MSTATUS_AND_RETURN_IT(status);
         for (unsigned int i = 0; i < plug.numElements(); ++i) {
             MPlug elem = plug.elementByLogicalIndex(i, &status);

@@ -5,29 +5,29 @@
 #include <array>
 #include <vector>
 
-#include <maya/MFnCompoundAttribute.h>
-#include <maya/MFnMatrixAttribute.h>
-#include <maya/MFnNumericAttribute.h>
-#include <maya/MFnMessageAttribute.h>
-#include <maya/MFnTypedAttribute.h>
-#include <maya/MGlobal.h>
 #include <maya/MArrayDataBuilder.h>
 #include <maya/MArrayDataHandle.h>
+#include <maya/MDataBlock.h>
+#include <maya/MFnCompoundAttribute.h>
+#include <maya/MFnMatrixAttribute.h>
+#include <maya/MFnMessageAttribute.h>
+#include <maya/MFnNumericAttribute.h>
 #include <maya/MFnNumericData.h>
-#include <maya/MStatus.h>
+#include <maya/MFnTypedAttribute.h>
+#include <maya/MGlobal.h>
+#include <maya/MItGeometry.h>
+#include <maya/MMatrix.h>
+#include <maya/MObject.h>
 #include <maya/MPlug.h>
 #include <maya/MPoint.h>
-#include <maya/MVector.h>
-#include <maya/MMatrix.h>
-#include <maya/MItGeometry.h>
-#include <maya/MDataBlock.h>
-#include <maya/MObject.h>
-#include <maya/MTypeId.h>
 #include <maya/MPxDeformerNode.h>
+#include <maya/MStatus.h>
 #include <maya/MThreadPool.h>
+#include <maya/MTypeId.h>
+#include <maya/MVector.h>
 
-#include <LBFGSB.h>
 #include <Eigen/Core>
+#include <LBFGSB.h>
 
 #include <thread>
 #include <vector>
@@ -58,7 +58,7 @@ private:
     static std::array<double, 4> bernsteinDerivative(double t);
 
     const std::vector<MPoint> &patchControlPoints;
-    const MPoint              &targetPoint;
+    const MPoint &targetPoint;
 
     static constexpr int uDegree = 3;
     static constexpr int vDegree = 3;

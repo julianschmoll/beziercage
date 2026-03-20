@@ -1,34 +1,33 @@
 #include "cageDeformer.hpp"
-#include "common.hpp"
 #include "bind.hpp"
+#include "common.hpp"
 
-#include <maya/MFnCompoundAttribute.h>
-#include <maya/MFnMatrixAttribute.h>
-#include <maya/MFnNumericAttribute.h>
-#include <maya/MFnMessageAttribute.h>
-#include <maya/MFnTypedAttribute.h>
-#include <maya/MGlobal.h>
 #include <maya/MArrayDataBuilder.h>
 #include <maya/MArrayDataHandle.h>
+#include <maya/MDataBlock.h>
+#include <maya/MFnCompoundAttribute.h>
+#include <maya/MFnMatrixAttribute.h>
+#include <maya/MFnMessageAttribute.h>
+#include <maya/MFnNumericAttribute.h>
 #include <maya/MFnNumericData.h>
-#include <maya/MStatus.h>
+#include <maya/MFnTypedAttribute.h>
+#include <maya/MGlobal.h>
+#include <maya/MItGeometry.h>
+#include <maya/MMatrix.h>
+#include <maya/MObject.h>
 #include <maya/MPlug.h>
 #include <maya/MPoint.h>
-#include <maya/MVector.h>
-#include <maya/MMatrix.h>
-#include <maya/MItGeometry.h>
-#include <maya/MDataBlock.h>
-#include <maya/MObject.h>
-#include <maya/MTypeId.h>
 #include <maya/MPxDeformerNode.h>
+#include <maya/MStatus.h>
 #include <maya/MThreadPool.h>
+#include <maya/MTypeId.h>
+#include <maya/MVector.h>
 
-#include <LBFGSB.h>
 #include <Eigen/Core>
+#include <LBFGSB.h>
 
 #include <thread>
 #include <vector>
-
 
 // This ID is registered with Autodesk (https://adndata.autodesk.io/maya).
 MTypeId bezierCage::id(0x0013f8c1);
@@ -49,10 +48,12 @@ MObject bezierCage::aVertexBindData;
 MObject bezierCage::aGeometryBindData;
 MObject bezierCage::aDirty;
 
-bezierCage::bezierCage(): MDeformTaskData() {
+bezierCage::bezierCage() : MDeformTaskData() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
     // Fallback to a single thread if the number of threads cannot be determined
-    if (kTaskCount == 0) { kTaskCount = 1; }
+    if (kTaskCount == 0) {
+        kTaskCount = 1;
+    }
 #if DEBUG_LOG
     MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for bezierCage deformer.");
 #endif
@@ -162,8 +163,7 @@ MStatus bezierCage::initialize() {
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     MString paintCmd;
-    paintCmd.format("makePaintable -attrType multiFloat -shapeMode deformer ^1s weights",
-                    MString(typeName));
+    paintCmd.format("makePaintable -attrType multiFloat -shapeMode deformer ^1s weights", MString(typeName));
     MGlobal::executeCommand(paintCmd);
 
     return status;
@@ -173,13 +173,14 @@ void *bezierCage::creator() {
     return new bezierCage();
 }
 
-MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                           unsigned int geometryIndex) {
+MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix, unsigned int geometryIndex) {
     // early exit if envelope is 0
     MStatus status;
     const float fEnvelope = dataBlock.inputValue(envelope, &status).asFloat();
     CHECK_MSTATUS_AND_RETURN_IT(status);
-    if (fEnvelope == 0.0f) { return status; }
+    if (fEnvelope == 0.0f) {
+        return status;
+    }
     status = updateBindPreMatrixPlugs(dataBlock);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
@@ -188,8 +189,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
     // gather all data for threading
-    const auto preControlPoints  = getControlPoints(dataBlock, DeformState::PreDeform);
-	const auto controlPoints     = getControlPoints(dataBlock, DeformState::PostDeform);
+    const auto preControlPoints = getControlPoints(dataBlock, DeformState::PreDeform);
+    const auto controlPoints = getControlPoints(dataBlock, DeformState::PostDeform);
     MPointArray points;
     geometryIterator.allPositions(points);
     std::vector<float> bindDist, weights, u, v;
@@ -261,7 +262,9 @@ void bezierCage::CreateThreadData() {
     unsigned int taskLength = (MDeformTaskData.numVerts + taskCount - 1) / taskCount;
     unsigned int start = 0, end = taskLength;
     for (int i = 0; i < taskCount; ++i) {
-        if (i == taskCount - 1) { end = MDeformTaskData.numVerts; }
+        if (i == taskCount - 1) {
+            end = MDeformTaskData.numVerts;
+        }
         MDeformThreadData[i] = {start, end, static_cast<unsigned int>(taskCount), &MDeformTaskData};
         start += taskLength;
         end += taskLength;
@@ -320,8 +323,7 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
     return 0;
 }
 
-MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                         unsigned int geometryIndex) {
+MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix, unsigned int geometryIndex) {
     MStatus status;
     MArrayDataHandle dirtyArrayHandle = dataBlock.inputArrayValue(aDirty, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -342,8 +344,8 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
     }
 
 #if DEBUG_LOG
-    MGlobal::displayInfo(MString("Binding geometry at index ") + MString(std::to_string(geometryIndex).c_str()) +
-                  MString(" to bezier cage with ") + MString(std::to_string(controlPoints.size()).c_str()) + MString(" patches."));
+    MGlobal::displayInfo(MString("Binding geometry at index ") + MString(std::to_string(geometryIndex).c_str()) + MString(" to bezier cage with ") +
+                         MString(std::to_string(controlPoints.size()).c_str()) + MString(" patches."));
 #endif
 
     MArrayDataHandle geometryBindDataHandle = dataBlock.inputArrayValue(aGeometryBindData, &status);
@@ -368,13 +370,11 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
                                 static_cast<float>(currentWorldPosition.z));
 
         int patchIndex = 0;
-        for (const auto &patchControlPoints: controlPoints) {
+        for (const auto &patchControlPoints : controlPoints) {
             auto uv = findBindingUV(patchControlPoints, currentWorldPosition);
 #if DEBUG_LOG
-            MGlobal::displayInfo("Binding UV for vertex at index " +
-                                 MString(std::to_string(geometryIterator.index()).c_str()) + ": (" +
-                                 MString(std::to_string(uv[0]).c_str()) + ", " +
-                                 MString(std::to_string(uv[1]).c_str()) + ")");
+            MGlobal::displayInfo("Binding UV for vertex at index " + MString(std::to_string(geometryIterator.index()).c_str()) + ": (" +
+                                 MString(std::to_string(uv[0]).c_str()) + ", " + MString(std::to_string(uv[1]).c_str()) + ")");
 #endif
             MPoint surfacePoint = evaluateBezierPatch(patchControlPoints, uv[0], uv[1]);
 
@@ -387,8 +387,7 @@ MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, c
             patchIndex++;
         }
 #if DEBUG_LOG
-        MGlobal::displayInfo(MString("Minimum distance for vertex at index ") +
-                             MString(std::to_string(geometryIterator.index()).c_str()) + ": " +
+        MGlobal::displayInfo(MString("Minimum distance for vertex at index ") + MString(std::to_string(geometryIterator.index()).c_str()) + ": " +
                              MString(std::to_string(minDistance).c_str()));
 #endif
     }
@@ -423,8 +422,7 @@ MStatus bezierCage::updateBindPreMatrixPlugs(MDataBlock &dataBlock) {
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MArrayDataHandle matrixArrayHandle(patchMatrixElemHandle);
 
-        MDataHandle patchBindPreMatrixElemHandle = patchBindPreMatricesBuilder.addElement(
-            patchMatricesHandle.elementIndex());
+        MDataHandle patchBindPreMatrixElemHandle = patchBindPreMatricesBuilder.addElement(patchMatricesHandle.elementIndex());
         MArrayDataHandle bindPreMatrixArrayHandle = patchBindPreMatrixElemHandle.child(aBindPreMatrix);
         MArrayDataBuilder bindPreMatrixArrayBuilder = bindPreMatrixArrayHandle.builder();
 
@@ -452,7 +450,7 @@ std::vector<std::vector<MPoint>> bezierCage::getControlPoints(MDataBlock &dataBl
     std::vector<std::vector<MPoint>> patches;
 
     const MObject matrixArrayAttr = (state == DeformState::PreDeform) ? aPatchBindPreMatrices : aPatchMatrices;
-    const MObject matrixAttr      = (state == DeformState::PreDeform) ? aBindPreMatrix        : aMatrix;
+    const MObject matrixAttr = (state == DeformState::PreDeform) ? aBindPreMatrix : aMatrix;
 
     MArrayDataHandle patchArrayHandle = dataBlock.inputArrayValue(matrixArrayAttr, &status);
     CHECK_MSTATUS_AND_RETURN(status, patches);
@@ -495,8 +493,7 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
      */
     if (matrixArray.elementCount() != 12) {
 #if ERROR_LOG
-        MGlobal::displayError("Patch must consist of 12 matrices, found " +
-                              MString(std::to_string(matrixArray.elementCount()).c_str()));
+        MGlobal::displayError("Patch must consist of 12 matrices, found " + MString(std::to_string(matrixArray.elementCount()).c_str()));
 #endif
         return {};
     }
@@ -574,10 +571,9 @@ std::vector<MPoint> bezierCage::getPatchPoints(MArrayDataHandle &matrixArray) {
     return controlPoints;
 }
 
-std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints,
-                                               const MPoint              &queryPoint) {
+std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint) {
     LBFGSpp::LBFGSBParam<double> param;
-    param.epsilon        = 1e-2;
+    param.epsilon = 1e-2;
     param.max_iterations = 200;
 
     LBFGSpp::LBFGSBSolver<double> solver(param);
@@ -586,7 +582,7 @@ std::array<float, 2> bezierCage::findBindingUV(const std::vector<MPoint> &contro
     constexpr Eigen::Index dim = 2;
     const Eigen::VectorXd lowerBounds = Eigen::VectorXd::Constant(dim, 0.0);
     const Eigen::VectorXd upperBounds = Eigen::VectorXd::Constant(dim, 1.0);
-    Eigen::VectorXd uv                = Eigen::VectorXd::Constant(dim, 0.5); // centre of patch
+    Eigen::VectorXd uv = Eigen::VectorXd::Constant(dim, 0.5); // centre of patch
 
     double finalCost;
     solver.minimize(distance, uv, finalCost, lowerBounds, upperBounds);

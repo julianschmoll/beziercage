@@ -1,19 +1,19 @@
 #pragma once
 
-#include <maya/MPxNode.h>
-#include <maya/MTypeId.h>
-#include <maya/MObject.h>
-#include <maya/MStatus.h>
-#include <maya/MPlug.h>
 #include <maya/MDataBlock.h>
-#include <maya/MThreadPool.h>
+#include <maya/MFnCompoundAttribute.h>
 #include <maya/MFnMatrixAttribute.h>
 #include <maya/MFnNumericAttribute.h>
 #include <maya/MFnTypedAttribute.h>
-#include <maya/MFnCompoundAttribute.h>
+#include <maya/MObject.h>
+#include <maya/MPlug.h>
+#include <maya/MPxNode.h>
+#include <maya/MStatus.h>
+#include <maya/MThreadPool.h>
+#include <maya/MTypeId.h>
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 struct offsetPinTaskData {
     unsigned int numMatrices;
@@ -23,12 +23,12 @@ struct offsetPinTaskData {
     std::vector<MMatrix> triMatrices;
     std::vector<MVector> offsetVectors;
     std::vector<int> geomIndices;
-    std::vector<std::unique_ptr<MFnMesh>>* meshCache;
+    std::vector<std::unique_ptr<MFnMesh>> *meshCache;
 };
 
 struct offsetPinThreadData {
     unsigned int start, end, numTasks;
-    offsetPinTaskData* data;
+    offsetPinTaskData *data;
 };
 
 class offsetPin : public MPxNode {
@@ -108,16 +108,15 @@ private:
      * @param[out] vertexIndices The array to be filled with vertex indices.
      * @return MStatus indicating success or failure.
      */
-    static MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId,
-                                            int triId,
+    static MStatus getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
                                             MIntArray &vertexIndices);
 
     /**
-    * Retrieves the original geometry path from the plug.
-    * @param[in] geomIndex Index of the geometry.
-    * @param[out] dagPath The MDagPath.
-    * @return MStatus indicating success or failure.
-    */
+     * Retrieves the original geometry path from the plug.
+     * @param[in] geomIndex Index of the geometry.
+     * @param[out] dagPath The MDagPath.
+     * @return MStatus indicating success or failure.
+     */
     MStatus GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dagPath);
 
     /**
@@ -130,16 +129,10 @@ private:
      * @param[in] offsetVector Optional offset vector to apply to the output position.
      * @return MMatrix representing the output position in world space.
      */
-    static MMatrix calculateOutputMatrix(
-        const MFloatArray &baryCoords,
-        const MPoint &A,
-        const MPoint &B,
-        const MPoint &C,
-        const MMatrix &bindTriangleMatrix,
-        const MVector *offsetVector = nullptr
-    );
+    static MMatrix calculateOutputMatrix(const MFloatArray &baryCoords, const MPoint &A, const MPoint &B, const MPoint &C,
+                                         const MMatrix &bindTriangleMatrix, const MVector *offsetVector = nullptr);
 
     void CreateThreadData();
-    static void CreateTasks(void* pData, MThreadRootTask* pRoot);
-    static MThreadRetVal ThreadEvaluate(void* pParam);
+    static void CreateTasks(void *pData, MThreadRootTask *pRoot);
+    static MThreadRetVal ThreadEvaluate(void *pParam);
 };

@@ -1,33 +1,32 @@
 #pragma once
 
-#include <maya/MSelectionList.h>
+#include <maya/MArgDatabase.h>
+#include <maya/MArgList.h>
+#include <maya/MDGModifier.h>
 #include <maya/MDagPath.h>
 #include <maya/MDagPathArray.h>
+#include <maya/MGlobal.h>
+#include <maya/MObject.h>
 #include <maya/MPlug.h>
+#include <maya/MSelectionList.h>
 #include <maya/MString.h>
 #include <maya/MStringArray.h>
-#include <maya/MGlobal.h>
 #include <maya/MSyntax.h>
-#include <maya/MString.h>
-#include <maya/MArgList.h>
-#include <maya/MArgDatabase.h>
-#include <maya/MObject.h>
-#include <maya/MDGModifier.h>
 
-#include <maya/MItGeometry.h>
-#include <maya/MItDependencyGraph.h>
-#include <maya/MItSelectionList.h>
-#include <maya/MFnDagNode.h>
-#include <maya/MFnDependencyNode.h>
 #include <maya/MFn.h>
+#include <maya/MFnDagNode.h>
 #include <maya/MFnData.h>
+#include <maya/MFnDependencyNode.h>
 #include <maya/MFnMesh.h>
 #include <maya/MFnTransform.h>
+#include <maya/MItDependencyGraph.h>
+#include <maya/MItGeometry.h>
+#include <maya/MItSelectionList.h>
 
 #include <maya/MPxCommand.h>
 
-#include "common.hpp"
 #include "cageDeformer.hpp"
+#include "common.hpp"
 
 class cageCmd : public MPxCommand {
 public:

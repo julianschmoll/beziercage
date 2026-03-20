@@ -1,19 +1,18 @@
 #pragma once
 
-#include <maya/MPxDeformerNode.h>
-#include <maya/MTypeId.h>
-#include <maya/MObject.h>
+#include <array>
 #include <maya/MDataBlock.h>
 #include <maya/MItGeometry.h>
 #include <maya/MMatrix.h>
-#include <maya/MVector.h>
-#include <maya/MPoint.h>
+#include <maya/MObject.h>
 #include <maya/MPlug.h>
-#include <vector>
-#include <array>
-#include <maya/MThreadPool.h>
+#include <maya/MPoint.h>
 #include <maya/MPointArray.h>
-
+#include <maya/MPxDeformerNode.h>
+#include <maya/MThreadPool.h>
+#include <maya/MTypeId.h>
+#include <maya/MVector.h>
+#include <vector>
 
 enum class DeformState { PreDeform, PostDeform };
 
@@ -25,8 +24,8 @@ struct deformTaskData {
     const std::vector<float> *weights;
     float envelope;
     float distanceTreshold;
-    const std::vector<std::vector<MPoint> > *controlPoints;
-    const std::vector<std::vector<MPoint> > *preControlPoints;
+    const std::vector<std::vector<MPoint>> *controlPoints;
+    const std::vector<std::vector<MPoint>> *preControlPoints;
     const std::vector<unsigned int> *patchIndex;
     const std::vector<float> *u;
     const std::vector<float> *v;
@@ -50,8 +49,7 @@ public:
 
     static MStatus initialize();
 
-    MStatus deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                   unsigned int geometryIndex) override;
+    MStatus deform(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix, unsigned int geometryIndex) override;
 
     static MTypeId id;
     static const char *typeName;
@@ -117,8 +115,7 @@ private:
      * @param[in] geometryIndex The index of the geometry being deformed.
      * @return MStatus indicating success or failure.
      */
-    static MStatus bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix,
-                        unsigned int geometryIndex);
+    static MStatus bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix, unsigned int geometryIndex);
 
     /**
      * Calculates the binding for a specific point.
@@ -126,8 +123,7 @@ private:
      * @param[in] queryPoint The point for which the binding is calculated.
      * @return An array containing the UV coordinates of the binding point in the patch.
      */
-    static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints,
-                                              const MPoint &queryPoint);
+    static std::array<float, 2> findBindingUV(const std::vector<MPoint> &controlPoints, const MPoint &queryPoint);
 
     /**
      * Retrieves the control points for a specific Bézier patch.

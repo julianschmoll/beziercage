@@ -1,20 +1,20 @@
 #include "offsetPin.hpp"
-#include <maya/MFnMatrixAttribute.h>
-#include <maya/MFnNumericAttribute.h>
-#include <maya/MFnTypedAttribute.h>
+#include <maya/MArrayDataBuilder.h>
+#include <maya/MArrayDataHandle.h>
+#include <maya/MFloatArray.h>
 #include <maya/MFnCompoundAttribute.h>
 #include <maya/MFnDependencyNode.h>
-#include <maya/MObject.h>
-#include <maya/MStatus.h>
-#include <maya/MArrayDataBuilder.h>
-#include <maya/MFnMesh.h>
 #include <maya/MFnIntArrayData.h>
-#include <maya/MArrayDataHandle.h>
-#include <maya/MMatrix.h>
-#include <maya/MFloatArray.h>
+#include <maya/MFnMatrixAttribute.h>
+#include <maya/MFnMesh.h>
 #include <maya/MFnMeshData.h>
-#include <maya/MPoint.h>
+#include <maya/MFnNumericAttribute.h>
+#include <maya/MFnTypedAttribute.h>
+#include <maya/MMatrix.h>
 #include <maya/MMeshIntersector.h>
+#include <maya/MObject.h>
+#include <maya/MPoint.h>
+#include <maya/MStatus.h>
 
 #include "common.hpp"
 #include <limits>
@@ -42,10 +42,11 @@ MObject offsetPin::aBindGeomIndex;
 MObject offsetPin::aGeometryLookup;
 MObject offsetPin::aFaceVertices;
 
-
-offsetPin::offsetPin(): MTaskData() {
+offsetPin::offsetPin() : MTaskData() {
     unsigned int kTaskCount = std::thread::hardware_concurrency();
-    if (kTaskCount == 0) { kTaskCount = 1; }
+    if (kTaskCount == 0) {
+        kTaskCount = 1;
+    }
 #if DEBUG_LOG
     MGlobal::displayInfo(MString("Using ") + kTaskCount + " threads for offsetPin node.");
 #endif
@@ -58,7 +59,7 @@ void *offsetPin::creator() {
 
 MStatus offsetPin::initialize() {
 #if INFO_LOG
- MGlobal::displayInfo("Initializing offsetPin node");
+    MGlobal::displayInfo("Initializing offsetPin node");
 #endif
     MFnMatrixAttribute mAttr;
     MFnNumericAttribute nAttr;
@@ -168,9 +169,11 @@ MStatus offsetPin::initialize() {
 MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
     MStatus status;
 #if DEBUG_LOG
-MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
+    MGlobal::displayInfo(MString("Recomputation was requested for plug: ") + plug.name());
 #endif
-    if (plug != aOutputMatrix) { return MS::kUnknownParameter; }
+    if (plug != aOutputMatrix) {
+        return MS::kUnknownParameter;
+    }
     buildGeometryLookup(data);
     status = bind(data);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -188,7 +191,7 @@ MStatus offsetPin::buildGeometryLookup(MDataBlock &data) {
     }
 
 #if INFO_LOG
- MGlobal::displayInfo("Building geometry lookup");
+    MGlobal::displayInfo("Building geometry lookup");
 #endif
 
     MArrayDataBuilder geoBuilder = geoLookupArray.builder();
@@ -266,12 +269,8 @@ MStatus offsetPin::bind(MDataBlock &data) {
     return status;
 }
 
-MStatus offsetPin::getTriangleVertexIndices(
-    MArrayDataHandle &geoLookupArray,
-    unsigned int geomIndex,
-    int faceId,
-    int triId,
-    MIntArray &vertexIndices) {
+MStatus offsetPin::getTriangleVertexIndices(MArrayDataHandle &geoLookupArray, unsigned int geomIndex, int faceId, int triId,
+                                            MIntArray &vertexIndices) {
     geoLookupArray.jumpToArrayElement(geomIndex);
     MArrayDataHandle faceHandle = geoLookupArray.inputValue().child(aFaceVertices);
     faceHandle.jumpToArrayElement(faceId);
@@ -300,7 +299,7 @@ MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dag
 
     MPlugArray connections;
     elemPlug.connectedTo(connections, true, false, &status);
-    if (status != MS::kSuccess || connections.length() <= 0){
+    if (status != MS::kSuccess || connections.length() <= 0) {
 #if ERROR_LOG
         MGlobal::displayInfo("No connections found on original geometry plug.");
 #endif
@@ -308,7 +307,8 @@ MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dag
     }
 
     MObject inputNode = connections[0].node();
-    if (!inputNode.hasFn(MFn::kMesh)) return MS::kFailure;
+    if (!inputNode.hasFn(MFn::kMesh))
+        return MS::kFailure;
 
     MFnDagNode dagNode(inputNode, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -320,7 +320,7 @@ MStatus offsetPin::GetOrigGeomPathFromPlug(unsigned int geomIndex, MDagPath &dag
 MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     MStatus status;
 #if DEBUG_LOG
- MGlobal::displayInfo("Calculating binding for index: " + MString(std::to_string(index).c_str()));
+    MGlobal::displayInfo("Calculating binding for index: " + MString(std::to_string(index).c_str()));
 #endif
     MArrayDataHandle inputMatrixArray = data.inputArrayValue(aInputMatrix, &status);
     CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -355,7 +355,8 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         CHECK_MSTATUS_AND_RETURN_IT(status);
         meshObj = inputGeometryArray.inputValue(&status).asMesh();
         CHECK_MSTATUS_AND_RETURN_IT(status);
-        if (meshObj.isNull()) continue;
+        if (meshObj.isNull())
+            continue;
 
         MFnMesh fnMesh(meshObj, &status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
@@ -364,14 +365,16 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
         // within the node but this way we can get the correct triangle id
         // as bind is not called regularly this is the best way to do it
         status = GetOrigGeomPathFromPlug(geomIndex, dagPath);
-        if (status != MS::kSuccess) continue;
+        if (status != MS::kSuccess)
+            continue;
 
         worldMatrix = dagPath.inclusiveMatrix(&status);
         CHECK_MSTATUS_AND_RETURN_IT(status);
         MMeshIntersector intersector;
-		MObject node = dagPath.node();
+        MObject node = dagPath.node();
         status = intersector.create(node, worldMatrix);
-        if (status != MS::kSuccess) continue;
+        if (status != MS::kSuccess)
+            continue;
 
         intersector.getClosestPoint(inputPoint, pointOnMesh);
 
@@ -404,33 +407,15 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     bindElem.child(aBindMatrix).setMMatrix(inputMatrix);
     bindElem.child(aBindTriangleMatrix).setMMatrix(bestTriangleMatrix);
     bindElem.child(aBindDistance).setDouble(minDistance);
-    bindElem.child(aBindCoordinates).set3Double(
-        bestBaryCoords[0],
-        bestBaryCoords[1],
-        bestBaryCoords[2]
-    );
-    bindElem.child(aBindVertexIndices).set3Int(
-        bestVertexIndices[0],
-        bestVertexIndices[1],
-        bestVertexIndices[2]
-    );
+    bindElem.child(aBindCoordinates).set3Double(bestBaryCoords[0], bestBaryCoords[1], bestBaryCoords[2]);
+    bindElem.child(aBindVertexIndices).set3Int(bestVertexIndices[0], bestVertexIndices[1], bestVertexIndices[2]);
     bindElem.child(aBindGeomIndex).setInt(bestGeomIndex);
 
     inputGeometryArray.jumpToArrayElement(bestGeomIndex);
     meshObj = inputGeometryArray.inputValue().asMesh();
     MFnMesh fnMesh(meshObj);
-    MMatrix deformMatrix = calculateOutputMatrix(
-        bestBaryCoords,
-        A,
-        B,
-        C,
-        bestTriangleMatrix
-    );
-    MVector deformTranslation(
-        deformMatrix[3][0],
-        deformMatrix[3][1],
-        deformMatrix[3][2]
-    );
+    MMatrix deformMatrix = calculateOutputMatrix(bestBaryCoords, A, B, C, bestTriangleMatrix);
+    MVector deformTranslation(deformMatrix[3][0], deformMatrix[3][1], deformMatrix[3][2]);
     MVector offsetVector = -deformTranslation;
     bindElem.child(aBindOffsetVector).set3Double(offsetVector.x, offsetVector.y, offsetVector.z);
 
@@ -438,17 +423,9 @@ MStatus offsetPin::calculateBinding(MDataBlock &data, unsigned int index) {
     return status;
 }
 
-MMatrix offsetPin::calculateOutputMatrix(
-    const MFloatArray &baryCoords,
-    const MPoint &A,
-    const MPoint &B,
-    const MPoint &C,
-    const MMatrix &bindTriangleMatrix,
-    const MVector *offsetVector
-) {
-    MVector interpolatedPosition = MVector(A) * baryCoords[0] +
-                                   MVector(B) * baryCoords[1] +
-                                   MVector(C) * baryCoords[2];
+MMatrix offsetPin::calculateOutputMatrix(const MFloatArray &baryCoords, const MPoint &A, const MPoint &B, const MPoint &C,
+                                         const MMatrix &bindTriangleMatrix, const MVector *offsetVector) {
+    MVector interpolatedPosition = MVector(A) * baryCoords[0] + MVector(B) * baryCoords[1] + MVector(C) * baryCoords[2];
     MMatrix outputMatrix;
     RotationMatrixFromTri(A, B, C, outputMatrix);
     outputMatrix = bindTriangleMatrix.inverse() * outputMatrix;
@@ -474,7 +451,7 @@ MStatus offsetPin::setOutput(MDataBlock &data) {
     MArrayDataHandle outputMatrixArray = data.outputArrayValue(aOutputMatrix);
     MArrayDataBuilder builder = outputMatrixArray.builder();
 
-    std::vector<std::unique_ptr<MFnMesh> > meshCache(inputGeometryArray.elementCount());
+    std::vector<std::unique_ptr<MFnMesh>> meshCache(inputGeometryArray.elementCount());
     for (unsigned int geomIndex = 0; geomIndex < inputGeometryArray.elementCount(); ++geomIndex) {
         inputGeometryArray.jumpToArrayElement(geomIndex);
         MObject meshObj = inputGeometryArray.inputValue().asMesh();
@@ -494,7 +471,8 @@ MStatus offsetPin::setOutput(MDataBlock &data) {
     MTaskData.outputMatrices.resize(numMatrices);
 
     for (unsigned int index = 0; index < numMatrices; ++index) {
-        if (bindDataArray.elementCount() <= index) continue;
+        if (bindDataArray.elementCount() <= index)
+            continue;
         bindDataArray.jumpToArrayElement(index);
 
         MDataHandle bindElem = bindDataArray.inputValue();
@@ -531,7 +509,9 @@ void offsetPin::CreateThreadData() {
     unsigned int start = 0, end = taskLength;
 
     for (int i = 0; i < taskCount; ++i) {
-        if (i == taskCount - 1) { end = MTaskData.numMatrices; }
+        if (i == taskCount - 1) {
+            end = MTaskData.numMatrices;
+        }
         MThreadData[i] = {start, end, static_cast<unsigned int>(taskCount), &MTaskData};
         start += taskLength;
         end += taskLength;
@@ -560,25 +540,23 @@ MThreadRetVal offsetPin::ThreadEvaluate(void *pParam) {
     const auto &meshCache = *data->meshCache;
 
     for (unsigned int index = threadData->start; index < threadData->end; ++index) {
-        if (index >= data->numMatrices) continue;
+        if (index >= data->numMatrices)
+            continue;
 
         int geomIndex = geomIndices[index];
-        if (geomIndex < 0 || geomIndex >= static_cast<int>(meshCache.size())) continue;
+        if (geomIndex < 0 || geomIndex >= static_cast<int>(meshCache.size()))
+            continue;
 
         MFnMesh *fnMesh = meshCache[geomIndex].get();
-        if (!fnMesh) continue;
+        if (!fnMesh)
+            continue;
 
         MPoint A, B, C;
         fnMesh->getPoint(vertexIndices[index][0], A, MSpace::kWorld);
         fnMesh->getPoint(vertexIndices[index][1], B, MSpace::kWorld);
         fnMesh->getPoint(vertexIndices[index][2], C, MSpace::kWorld);
 
-        outputMatrices[index] = calculateOutputMatrix(
-            baryCoords[index],
-            A, B, C,
-            triMatrices[index],
-            &offsetVectors[index]
-        );
+        outputMatrices[index] = calculateOutputMatrix(baryCoords[index], A, B, C, triMatrices[index], &offsetVectors[index]);
     }
     return 0;
 }

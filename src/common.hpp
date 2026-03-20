@@ -6,24 +6,23 @@
 
 #include "cageDeformer/cageCmd.hpp"
 #include "cageDeformer/cageDeformer.hpp"
-#include "cageDeformer/cageCmd.hpp"
 #include "offsetPin/offsetPin.hpp"
 
 #include <maya/MDagPath.h>
 #include <maya/MDoubleArray.h>
+#include <maya/MFloatArray.h>
 #include <maya/MFloatVectorArray.h>
+#include <maya/MGlobal.h>
 #include <maya/MIntArray.h>
 #include <maya/MMatrix.h>
 #include <maya/MPoint.h>
 #include <maya/MPointArray.h>
-#include <maya/MString.h>
-#include <maya/MGlobal.h>
 #include <maya/MStreamUtils.h>
-#include <maya/MFloatArray.h>
+#include <maya/MString.h>
 
 #include <map>
-#include <vector>
 #include <set>
+#include <vector>
 
 /* Convenience macros for logging.
  * Verbosity can be defined by setting LOG_LEVEL during compilation.
@@ -31,7 +30,7 @@
  * 1: Only errors are logged.
  * 2: Errors and info messages are logged.
  * 3: Errors, info, and debug messages are logged.
-*/
+ */
 #if LOG_LEVEL > 0
 #define ERROR_LOG 1
 #endif
@@ -51,7 +50,6 @@
  */
 bool IsShapeNode(MDagPath &path);
 
-
 /**
   Sets dag path to shape node path from transform.
   @param[in,out] path Path to a dag node.
@@ -60,14 +58,12 @@ bool IsShapeNode(MDagPath &path);
  */
 MStatus GetShapeNode(MDagPath &path, bool intermediate = false);
 
-
 /**
   Gets Dag Path of an object by name.
   @param[in] name Name of a dag node.
   @param[out] path Storage for the dag path.
  */
 MStatus GetDagPath(MString &name, MDagPath &path);
-
 
 /**
   Delete intermediate shape nodes of the given dag path.
@@ -93,7 +89,6 @@ void GetBarycentricCoordinates(const MPoint &p, const MPoint &a, const MPoint &b
   @param[out] m The computed rotation matrix.
 */
 void RotationMatrixFromTri(const MPoint &a, const MPoint &b, const MPoint &c, MMatrix &m);
-
 
 /**
  * Evaluates a point on a Bézier curve using De Casteljau's algorithm.
