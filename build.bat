@@ -34,7 +34,8 @@ echo Setting LOG_LEVEL to %LOG_LEVEL_VALUE%
 
 set "toolchain_file=%vcpkg_dir%/scripts/buildsystems/vcpkg.cmake"
 
-cmake -A x64 -DCMAKE_TOOLCHAIN_FILE="%toolchain_file%" -DMAYA_VERSION=%1 %CMAKE_FLAGS% "%root_folder%"
+REM This actually needs to specify -T v143 even though its outdated because maya wants that :(
+cmake -A x64 -T v143 -DCMAKE_TOOLCHAIN_FILE="%toolchain_file%" -DMAYA_VERSION=%1 %CMAKE_FLAGS% "%root_folder%"
 cmake --build . --target install --config Release
 cmake --build . --target clean
 

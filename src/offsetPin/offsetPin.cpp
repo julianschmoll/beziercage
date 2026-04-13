@@ -558,5 +558,5 @@ MThreadRetVal offsetPin::ThreadEvaluate(void *pParam) {
 
         outputMatrices[index] = calculateOutputMatrix(baryCoords[index], pointA, pointB, pointC, triMatrices[index], &offsetVectors[index]);
     }
-    return nullptr;
+    return 0;
 }

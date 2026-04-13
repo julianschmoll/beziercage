@@ -320,7 +320,7 @@ MThreadRetVal bezierCage::ThreadEvaluate(void *pParam) {
             points[i] = worldPoint * worldToLocalMatrix;
         }
     }
-    return nullptr;
+    return 0;
 }
 
 MStatus bezierCage::bind(MDataBlock &dataBlock, MItGeometry &geometryIterator, const MMatrix &localToWorldMatrix, unsigned int geometryIndex) {
