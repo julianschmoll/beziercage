@@ -162,6 +162,8 @@ MStatus offsetPin::initialize() {
     attributeAffects(aInputMatrix, aOutputMatrix);
     attributeAffects(aInputGeometry, aOutputMatrix);
     attributeAffects(aOriginalGeometry, aOutputMatrix);
+    attributeAffects(aBindData, aOutputMatrix);
+    attributeAffects(aGeometryLookup, aOutputMatrix);
 
     return MS::kSuccess;
 }
@@ -175,6 +177,7 @@ MStatus offsetPin::compute(const MPlug &plug, MDataBlock &data) {
         return MS::kUnknownParameter;
     }
     buildGeometryLookup(data);
+    // Binding should be moved out of here in command, this was done for simplicity reasons
     status = bind(data);
     CHECK_MSTATUS_AND_RETURN_IT(status);
     setOutput(data);

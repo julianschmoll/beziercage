@@ -181,6 +181,8 @@ MStatus bezierCage::deform(MDataBlock &dataBlock, MItGeometry &geometryIterator,
     if (fEnvelope == 0.0f) {
         return status;
     }
+
+    // Binding should be moved out of here in command, this was done for simplicity reasons
     status = updateBindPreMatrixPlugs(dataBlock);
     CHECK_MSTATUS_AND_RETURN_IT(status);
 
